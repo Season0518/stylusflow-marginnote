@@ -1,0 +1,5 @@
+node_modules/
+*.mnaddon
+.DS_Store
+npm-debug.log*
+pnpm-debug.log*
