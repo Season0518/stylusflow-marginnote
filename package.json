@@ -2,6 +2,7 @@
   "name": "stylusflow",
   "version": "0.1.0",
   "private": true,
+  "license": "GPL-3.0-only",
   "scripts": {
     "build": "node scripts/build-release.js",
     "dev": "cd src && zip -r -q ../stylusflow-dev.mnaddon .",

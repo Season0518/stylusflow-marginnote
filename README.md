@@ -30,6 +30,10 @@ npm run build
 
 在MarginNote4中导入生成的`.mnaddon`并启用即可。
 
+## License
+
+本项目采用GNU GPL v3许可证，详见`LICENSE`文件。
+
 ## 常用命令
 
 更新版本号(同时更新`package.json`与`src/mnaddon.json`)：
