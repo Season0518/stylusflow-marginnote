@@ -2,14 +2,14 @@
 
 > 致力于为 Mac 版 MarginNote 4 提供流畅的手写体验 | [English](README.md)
 
-## 🎯 概述
+## 概述
 
 **StylusFlow** 是一个 MarginNote 4 插件，让你可以为画布工具（笔、荧光笔、橡皮等）绑定自定义键盘快捷键，提供比iPad流畅的手写体验。
 
 ---
 
 
-## 🚀 快速开始
+## 快速开始
 
 ### 安装
 
@@ -24,7 +24,7 @@ pnpm dev
 
 ---
 
-## 📖 使用方法
+## 使用方法
 
 1. 打开 StylusFlow 浮动面板
 2. 切换到「快捷键」标签
@@ -38,7 +38,7 @@ pnpm dev
 
 ---
 
-## 📄 许可证
+## 许可证
 
 GNU General Public License v3.0 - 详见 [LICENSE](LICENSE) 文件。
 

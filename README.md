@@ -2,14 +2,14 @@
 
 > Dedicated to providing a smooth handwriting experience for MarginNote 4 on Mac | [中文](README_ZH.md)
 
-## 🎯 Overview
+## Overview
 
 **StylusFlow** is a MarginNote 4 plugin that lets you assign custom keyboard shortcuts to canvas tools (pen, highlighter, eraser, etc.), providing a handwriting experience even smoother than on an iPad.
 
 ---
 
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Installation
 
@@ -24,7 +24,7 @@ pnpm dev
 
 ---
 
-## 📖 How to Use
+## How to Use
 
 1. Open the StylusFlow floating panel
 2. Switch to the “Shortcuts” tab
@@ -38,7 +38,7 @@ If you encounter an unsolvable issue, please describe your problem in the Issues
 
 ---
 
-## 📄 License
+## License
 
 GNU General Public License v3.0 - See the [LICENSE](LICENSE) file for details.
 
