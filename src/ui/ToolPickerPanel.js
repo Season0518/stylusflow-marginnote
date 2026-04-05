@@ -56,18 +56,7 @@ function createToolPickerPanel(addon) {
   const toolsPane = new UIView({ x: 0, y: TITLE_H + TAB_H, width: PANEL_W, height: CONTENT_H });
   toolsPane.backgroundColor = UIColor.colorWithWhiteAlpha(0.98, 1);
 
-  const scanBtn = UIButton.buttonWithType(0);
-  scanBtn.frame = { x: 10, y: 10, width: PANEL_W - 20, height: 36 };
-  scanBtn.setTitleForState('Scan Tools', 0);
-  scanBtn.setTitleColorForState(UIColor.whiteColor(), 0);
-  scanBtn.backgroundColor = UIColor.colorWithWhiteAlpha(0.35, 1);
-  scanBtn.titleLabel.font = UIFont.systemFontOfSize(13);
-  scanBtn.layer.cornerRadius = 7;
-  scanBtn.layer.masksToBounds = true;
-  scanBtn.addTargetActionForControlEvents(addon, 'onScanTools:', 1 << 6);
-  toolsPane.addSubview(scanBtn);
-
-  const toolsScroll = new UIScrollView({ x: 0, y: 56, width: PANEL_W, height: CONTENT_H - 56 });
+  const toolsScroll = new UIScrollView({ x: 0, y: 0, width: PANEL_W, height: CONTENT_H });
   toolsScroll.alwaysBounceVertical = true;
   toolsPane.addSubview(toolsScroll);
 
@@ -75,7 +64,18 @@ function createToolPickerPanel(addon) {
   debugPane.backgroundColor = UIColor.whiteColor();
   debugPane.hidden = true;
 
-  const debugScroll = new UIScrollView({ x: 0, y: 0, width: PANEL_W, height: CONTENT_H });
+  const debugScanBtn = UIButton.buttonWithType(0);
+  debugScanBtn.frame = { x: 10, y: 10, width: PANEL_W - 20, height: 36 };
+  debugScanBtn.setTitleForState('Scan Tools', 0);
+  debugScanBtn.setTitleColorForState(UIColor.whiteColor(), 0);
+  debugScanBtn.backgroundColor = UIColor.colorWithWhiteAlpha(0.35, 1);
+  debugScanBtn.titleLabel.font = UIFont.systemFontOfSize(13);
+  debugScanBtn.layer.cornerRadius = 7;
+  debugScanBtn.layer.masksToBounds = true;
+  debugScanBtn.addTargetActionForControlEvents(addon, 'onScanTools:', 1 << 6);
+  debugPane.addSubview(debugScanBtn);
+
+  const debugScroll = new UIScrollView({ x: 0, y: 56, width: PANEL_W, height: CONTENT_H - 56 });
   debugScroll.alwaysBounceVertical = true;
   debugPane.addSubview(debugScroll);
 
@@ -137,7 +137,7 @@ function createToolPickerPanel(addon) {
 
     if (!tools.length) {
       const lbl = new UILabel({ x: 0, y: 20, width: PANEL_W, height: 30 });
-      lbl.text = 'No tools found';
+      lbl.text = 'No tools found (scan in Debug tab)';
       lbl.textAlignment = 1;
       lbl.textColor = UIColor.lightGrayColor();
       lbl.font = UIFont.systemFontOfSize(13);
@@ -171,25 +171,13 @@ function createToolPickerPanel(addon) {
       slotLbl.font = UIFont.systemFontOfSize(11);
       slotLbl.textColor = UIColor.lightGrayColor();
 
-      const clsLbl = new UILabel({ x: 64, y: 0, width: PANEL_W - PAD * 2 - 64 - 62, height: ROW_H });
+      const clsLbl = new UILabel({ x: 64, y: 0, width: PANEL_W - PAD * 2 - 74, height: ROW_H });
       clsLbl.text = cls;
       clsLbl.font = UIFont.boldSystemFontOfSize(12);
       clsLbl.textColor = UIColor.darkGrayColor();
 
-      const actBtn = UIButton.buttonWithType(0);
-      actBtn.frame = { x: PANEL_W - PAD * 2 - 56, y: (ROW_H - 28) / 2, width: 52, height: 28 };
-      actBtn.setTitleForState('Activate', 0);
-      actBtn.setTitleColorForState(UIColor.whiteColor(), 0);
-      actBtn.backgroundColor = UIColor.colorWithWhiteAlpha(0.4, 1);
-      actBtn.titleLabel.font = UIFont.systemFontOfSize(12);
-      actBtn.layer.cornerRadius = 6;
-      actBtn.layer.masksToBounds = true;
-      actBtn.tag = i;
-      actBtn.addTargetActionForControlEvents(addon, 'onActivateTool:', 1 << 6);
-
       row.addSubview(slotLbl);
       row.addSubview(clsLbl);
-      row.addSubview(actBtn);
       toolsScroll.addSubview(row);
       y += ROW_H + 6;
     }
@@ -241,9 +229,11 @@ function createToolPickerPanel(addon) {
     for (let i = 0; i < debugTools.length; i++) {
       const tool = debugTools[i];
       const expanded = !!expandedIndices[i];
+      const ACTIVATE_W = 64;
+      const GAP = 6;
 
       const tBtn = UIButton.buttonWithType(0);
-      tBtn.frame = { x: PAD, y, width: PANEL_W - PAD * 2, height: 26 };
+      tBtn.frame = { x: PAD, y, width: PANEL_W - PAD * 2 - ACTIVATE_W - GAP, height: 26 };
       tBtn.setTitleForState(`${expanded ? 'v ' : '> '}[${i}] ${tool.cls}  Slot ${tool.slotIndex}`, 0);
       tBtn.setTitleColorForState(UIColor.darkGrayColor(), 0);
       tBtn.titleLabel.font = UIFont.boldSystemFontOfSize(12);
@@ -255,6 +245,19 @@ function createToolPickerPanel(addon) {
       tBtn.tag = i;
       tBtn.addTargetActionForControlEvents(addon, 'onDebugToggle:', 1 << 6);
       debugScroll.addSubview(tBtn);
+
+      const actBtn = UIButton.buttonWithType(0);
+      actBtn.frame = { x: PANEL_W - PAD - ACTIVATE_W, y, width: ACTIVATE_W, height: 26 };
+      actBtn.setTitleForState('Activate', 0);
+      actBtn.setTitleColorForState(UIColor.whiteColor(), 0);
+      actBtn.backgroundColor = UIColor.colorWithWhiteAlpha(0.45, 1);
+      actBtn.titleLabel.font = UIFont.systemFontOfSize(11);
+      actBtn.layer.cornerRadius = 5;
+      actBtn.layer.masksToBounds = true;
+      actBtn.tag = i;
+      actBtn.addTargetActionForControlEvents(addon, 'onActivateTool:', 1 << 6);
+      debugScroll.addSubview(actBtn);
+
       y += 30;
 
       if (expanded && tool.view && typeof tool.view === 'object') {
@@ -307,23 +310,18 @@ function createToolPickerPanel(addon) {
     applyTabStyle(idx);
   }
 
-  function scan() {
+  function collectTools() {
     ensurePicker();
     tools = picker ? CanvasToolController.detectAllTools(picker) : [];
-    renderTools();
+    return tools;
   }
 
-  function activateTool(idx) {
-    if (tools && tools[idx]) CanvasToolController.activate(tools[idx].view);
-  }
-
-  function refreshDebug() {
-    ensurePicker();
-    const currentTools = picker ? CanvasToolController.detectAllTools(picker) : [];
+  function buildDebugData(currentTools) {
+    const toolList = currentTools || [];
     debugData = {
       isVisible: CanvasToolController.isVisible(picker),
-      toolCount: currentTools.length,
-      tools: currentTools.map((tool, index) => {
+      toolCount: toolList.length,
+      tools: toolList.map((tool, index) => {
         let cls;
         try {
           cls = CanvasToolController.tryGetClassName(tool.view);
@@ -338,6 +336,23 @@ function createToolPickerPanel(addon) {
         };
       }),
     };
+  }
+
+  function scan() {
+    const currentTools = collectTools();
+    renderTools();
+    buildDebugData(currentTools);
+    renderDebug();
+  }
+
+  function activateTool(idx) {
+    if (!tools[idx]) collectTools();
+    if (tools && tools[idx]) CanvasToolController.activate(tools[idx].view);
+  }
+
+  function refreshDebug() {
+    const currentTools = collectTools();
+    buildDebugData(currentTools);
     renderDebug();
   }
 
