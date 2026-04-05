@@ -53,7 +53,7 @@ function createMNStylusFlowAddon(mainPath) {
     {
       sceneWillConnect: function () {
         self.mainPath = mainPath;
-        ShortcutController.bindDefaultShortcuts();
+        ShortcutController.restorePersistedBindings();
         _panel = createToolPickerPanel(self);
         if (_panel) _panel.refreshShortcutBindings();
         console.log("[StylusFlow] initialized");

@@ -33,7 +33,11 @@ const ShortcutController = (() => {
     return ShortcutBindings.getToolActionIds();
   }
 
-  ShortcutBindings.bindDefaultShortcuts();
+  function restorePersistedBindings() {
+    ShortcutBindings.restorePersistedBindings();
+  }
+
+  ShortcutBindings.restorePersistedBindings();
 
   return {
     ACTIONS: ShortcutConstants.ACTIONS,
@@ -42,6 +46,7 @@ const ShortcutController = (() => {
     getBinding: ShortcutBindings.getBinding,
     applyCustomBinding,
     bindDefaultShortcuts: ShortcutBindings.bindDefaultShortcuts,
+    restorePersistedBindings,
     getAdditionalShortcutKeys: ShortcutBindings.getAdditionalShortcutKeys,
     resolveAction: ShortcutBindings.resolveAction,
     queryShortcut: ShortcutBindings.queryShortcut,

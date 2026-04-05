@@ -10,6 +10,29 @@ const ShortcutBindings = (() => {
 
   const reverseMap = {};
 
+  function clearAllBindings() {
+    for (const key in bindings) delete bindings[key];
+    for (const key in reverseMap) delete reverseMap[key];
+    bindingCount = 0;
+  }
+
+  function exportBindings() {
+    const out = {};
+    for (const actionId in bindings) {
+      const binding = bindings[actionId];
+      out[actionId] = {
+        input: binding.input,
+        flags: binding.flags,
+        title: binding.title || null,
+      };
+    }
+    return out;
+  }
+
+  function persistBindings() {
+    return ShortcutStorage.saveBindings(exportBindings());
+  }
+
   function rebuildCachedIds() {
     const ids = [ACTIONS.PREV_TOOL, ACTIONS.NEXT_TOOL];
     const count = Math.max(dynamicToolCount, DEFAULT_TOOL_COUNT);
@@ -36,14 +59,18 @@ const ShortcutBindings = (() => {
     dynamicToolCount = nextCount;
     rebuildCachedIds();
 
+    let removed = false;
     const valid = new Set(cachedOrderedIds);
     for (const actionId in bindings) {
       if (!valid.has(actionId)) {
         delete reverseMap[`${bindings[actionId].input}__${bindings[actionId].flags}`];
         delete bindings[actionId];
         bindingCount--;
+        removed = true;
       }
     }
+
+    if (removed) persistBindings();
 
     return true;
   }
@@ -59,7 +86,7 @@ const ShortcutBindings = (() => {
     }
   }
 
-  function setBinding(actionId, input, flags, title) {
+  function setBinding(actionId, input, flags, title, skipPersist) {
     if (!actionId || !input) return false;
     const normalizedInput = normalizeInput(input);
     const finalFlags = normalizeFlags(flags);
@@ -79,15 +106,17 @@ const ShortcutBindings = (() => {
       display: formatShortcutLabel(normalizedInput, finalFlags),
     };
     reverseMap[key] = actionId;
+    if (!skipPersist) persistBindings();
     return true;
   }
 
-  function clearBinding(actionId) {
+  function clearBinding(actionId, skipPersist) {
     if (!actionId || !bindings[actionId]) return false;
     const binding = bindings[actionId];
     delete reverseMap[`${binding.input}__${binding.flags}`];
     delete bindings[actionId];
     bindingCount--;
+    if (!skipPersist) persistBindings();
     return true;
   }
 
@@ -100,9 +129,18 @@ const ShortcutBindings = (() => {
   }
 
   function bindDefaultShortcuts() {
-    for (const key in bindings) delete bindings[key];
-    for (const key in reverseMap) delete reverseMap[key];
-    bindingCount = 0;
+    clearAllBindings();
+    persistBindings();
+  }
+
+  function restorePersistedBindings() {
+    const saved = ShortcutStorage.loadBindings();
+    clearAllBindings();
+    for (const actionId in saved) {
+      const item = saved[actionId];
+      if (!item || !item.input) continue;
+      setBinding(actionId, item.input, item.flags, item.title, true);
+    }
   }
 
   function getAdditionalShortcutKeys() {
@@ -161,6 +199,7 @@ const ShortcutBindings = (() => {
     getToolActionIds,
     setDynamicToolCount,
     bindDefaultShortcuts,
+    restorePersistedBindings,
     getAdditionalShortcutKeys,
     resolveAction,
     queryShortcut,
