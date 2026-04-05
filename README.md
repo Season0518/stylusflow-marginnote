@@ -1,62 +1,51 @@
-# 标准插件(打包项目)开发模板
+# StylusFlow
 
-用于MarginNote4的标准插件工程模板(输出`.mnaddon`)。
+> Dedicated to providing a smooth handwriting experience for MarginNote 4 on Mac | [中文](README_ZH.md)
 
-## 开始开发
+## 🎯 Overview
 
-安装依赖：
+**StylusFlow** is a MarginNote 4 plugin that lets you assign custom keyboard shortcuts to canvas tools (pen, highlighter, eraser, etc.), providing a handwriting experience even smoother than on an iPad.
+
+---
+
+
+## 🚀 Quick Start
+
+### Installation
+
+Download the latest `.mnaddon` file from [GitHub Releases](https://github.com/yourusername/stylusflow/releases) and import it into MarginNote 4.
+
+### Install from Source
 
 ```bash
 pnpm install
-# 或(使用npm时)
-npm install
-```
-
-打包调试包(不压缩，适合频繁迭代)：
-
-```bash
 pnpm dev
-# 或(使用npm时)
-npm run dev
 ```
 
-打包发布包(先压缩再打包)：
+---
 
-```bash
-pnpm build
-# 或(使用npm时)
-npm run build
-```
+## 📖 How to Use
 
-在MarginNote4中导入生成的`.mnaddon`并启用即可。
+1. Open the StylusFlow floating panel
+2. Switch to the “Shortcuts” tab
+3. Click the tool you want to bind
+4. Press the key combination you want
+5. Confirm and save
 
-## License
+In the “Debug” tab, you can view the last activated shortcut and the tool detection status.
 
-本项目采用GNU GPL v3许可证，详见`LICENSE`文件。
+If you encounter an unsolvable issue, please describe your problem in the Issues section. To ensure efficient communication, please clearly describe the issue you are facing.
 
-## 常用命令
+---
 
-更新版本号(同时更新`package.json`与`src/mnaddon.json`)：
+## 📄 License
 
-```bash
-pnpm version:patch
-pnpm version:minor
-pnpm version:major
-```
+GNU General Public License v3.0 - See the [LICENSE](LICENSE) file for details.
 
-如果当前目录是干净的git工作区，会自动创建commit并打tag(例如`v0.2.0`)。
+---
 
-## 发布到GitHubRelease
+<div align="center" style="color: #39c5bb;">
 
-推送tag后，GitHubActions会自动构建并把`*.mnaddon`上传到GitHubRelease：
+‧₊˚♪( ˶°ㅁ°)!! 𝄞₊˚⊹ 
 
-```bash
-pnpm version:patch
-git push
-git push --tags
-```
-
-## 注意事项
-
-- 请先读`AGENTS.md`，尤其是“只允许在`src/main.js`里调用`JSB.require(...)`”这条
-- MarginNote插件运行在JavaScriptCore环境中，不能按浏览器/Node.js假设(例如没有fetch/DOM/localStorage)
+</div>
