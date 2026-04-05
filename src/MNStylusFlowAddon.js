@@ -1,4 +1,5 @@
 function createMNStylusFlowAddon(mainPath) {
+  var DEBUG_TAB_INDEX = 1;
   var _panel = null;
 
   return JSB.defineClass(
@@ -55,7 +56,7 @@ function createMNStylusFlowAddon(mainPath) {
       onTabSwitch: function (sender) {
         if (!_panel) return;
         _panel.switchTab(sender.tag);
-        if (sender.tag === 1) _panel.refreshDebug();
+        if (sender.tag === DEBUG_TAB_INDEX) _panel.refreshDebug();
       },
       onScanTools: function () {
         if (_panel) _panel.scan();
@@ -65,6 +66,9 @@ function createMNStylusFlowAddon(mainPath) {
       },
       onDebugToggle: function (sender) {
         if (_panel) _panel.toggleDebugItem(sender.tag);
+      },
+      onToggleDirectToolsTab: function () {
+        if (_panel) _panel.toggleDirectToolsTab();
       },
     },
   );
