@@ -133,6 +133,10 @@ const ShortcutBindings = (() => {
     persistBindings();
   }
 
+  function clearRuntimeBindings() {
+    clearAllBindings();
+  }
+
   function restorePersistedBindings() {
     const saved = ShortcutStorage.loadBindings();
     clearAllBindings();
@@ -199,6 +203,7 @@ const ShortcutBindings = (() => {
     getToolActionIds,
     setDynamicToolCount,
     bindDefaultShortcuts,
+    clearRuntimeBindings,
     restorePersistedBindings,
     getAdditionalShortcutKeys,
     resolveAction,

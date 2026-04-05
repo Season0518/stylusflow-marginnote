@@ -133,6 +133,22 @@ function createMNStylusFlowAddon(mainPath) {
       onScanTools: function () {
         if (_panel) _panel.scan();
       },
+      onResetAddonConfig: function () {
+        var ok = ShortcutController.clearAllPersistedConfig();
+        if (!ok) return;
+
+        ShortcutController.clearRuntimeBindings();
+        ShortcutController.restorePersistedBindings();
+
+        if (_panel) {
+          _panel.refreshShortcutBindings();
+          _panel.refreshDebug();
+        }
+
+        var app = Application.sharedInstance();
+        var sc = app.studyController(self.window);
+        if (sc) sc.refreshAddonCommands();
+      },
       onActivateTool: function (sender) {
         if (_panel) _panel.activateTool(sender.tag);
       },

@@ -10,7 +10,7 @@ function createDebugPane(config) {
   pane.hidden = true;
 
   const scanBtn = UIButton.buttonWithType(0);
-  scanBtn.frame = { x: 10, y: 10, width: panelWidth - 20, height: 36 };
+  scanBtn.frame = { x: 10, y: 10, width: (panelWidth - 28) / 2, height: 36 };
   scanBtn.setTitleForState('扫描工具', 0);
   scanBtn.setTitleColorForState(UIColor.whiteColor(), 0);
   scanBtn.backgroundColor = UIColor.colorWithWhiteAlpha(0.35, 1);
@@ -19,6 +19,17 @@ function createDebugPane(config) {
   scanBtn.layer.masksToBounds = true;
   scanBtn.addTargetActionForControlEvents(addon, 'onScanTools:', 1 << 6);
   pane.addSubview(scanBtn);
+
+  const resetBtn = UIButton.buttonWithType(0);
+  resetBtn.frame = { x: 18 + (panelWidth - 28) / 2, y: 10, width: (panelWidth - 28) / 2, height: 36 };
+  resetBtn.setTitleForState('重置配置', 0);
+  resetBtn.setTitleColorForState(UIColor.whiteColor(), 0);
+  resetBtn.backgroundColor = UIColor.colorWithWhiteAlpha(0.58, 1);
+  resetBtn.titleLabel.font = UIFont.systemFontOfSize(13);
+  resetBtn.layer.cornerRadius = 7;
+  resetBtn.layer.masksToBounds = true;
+  resetBtn.addTargetActionForControlEvents(addon, 'onResetAddonConfig:', 1 << 6);
+  pane.addSubview(resetBtn);
 
   const scroll = new UIScrollView({ x: 0, y: 56, width: panelWidth, height: contentHeight - 56 });
   scroll.alwaysBounceVertical = true;

@@ -1,5 +1,6 @@
 const ShortcutStorage = (() => {
   const STORAGE_KEY = 'stylusflow.shortcuts.bindings.v1';
+  const ALL_CONFIG_KEYS = [STORAGE_KEY];
 
   function buildInitialDefaultBindings() {
     const commandShift = ShortcutConstants.FLAGS.COMMAND_SHIFT;
@@ -81,5 +82,20 @@ const ShortcutStorage = (() => {
     }
   }
 
-  return { loadBindings, saveBindings };
+  function clearAllAddonConfigs() {
+    const defaults = getDefaults();
+    if (!defaults) return false;
+
+    try {
+      for (let i = 0; i < ALL_CONFIG_KEYS.length; i++) {
+        defaults.removeObjectForKey(ALL_CONFIG_KEYS[i]);
+      }
+      defaults.synchronize();
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  return { loadBindings, saveBindings, clearAllAddonConfigs };
 })();

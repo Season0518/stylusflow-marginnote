@@ -37,6 +37,14 @@ const ShortcutController = (() => {
     ShortcutBindings.restorePersistedBindings();
   }
 
+  function clearAllPersistedConfig() {
+    return ShortcutStorage.clearAllAddonConfigs();
+  }
+
+  function clearRuntimeBindings() {
+    ShortcutBindings.clearRuntimeBindings();
+  }
+
   ShortcutBindings.restorePersistedBindings();
 
   return {
@@ -47,6 +55,8 @@ const ShortcutController = (() => {
     applyCustomBinding,
     bindDefaultShortcuts: ShortcutBindings.bindDefaultShortcuts,
     restorePersistedBindings,
+    clearAllPersistedConfig,
+    clearRuntimeBindings,
     getAdditionalShortcutKeys: ShortcutBindings.getAdditionalShortcutKeys,
     resolveAction: ShortcutBindings.resolveAction,
     queryShortcut: ShortcutBindings.queryShortcut,
