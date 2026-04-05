@@ -56,14 +56,6 @@ function createShortcutsPane(config) {
     for (let i = 0; i < subs.length; i++) subs[i].removeFromSuperview();
   }
 
-  function addHint(text, y, height) {
-    const hint = new UILabel({ x: 12, y, width: panelWidth - 24, height });
-    hint.text = text;
-    hint.font = UIFont.systemFontOfSize(11);
-    hint.textColor = UIColor.lightGrayColor();
-    scroll.addSubview(hint);
-  }
-
   function addKeyBadge(row, keyText, x, y, width, height) {
     const keyBadge = new UIView({ x, y, width, height });
     keyBadge.backgroundColor = UIColor.colorWithWhiteAlpha(0.88, 1);
@@ -126,12 +118,6 @@ function createShortcutsPane(config) {
       tapBtn.addTargetActionForControlEvents(addon, 'onShortcutBindingTap:', 1 << 6);
       row.addSubview(tapBtn);
 
-      const tipLbl = new UILabel({ x: LEFT_PAD, y: ROW_H - 14, width: TITLE_W, height: 12 });
-      tipLbl.text = '点键位自定义';
-      tipLbl.font = UIFont.systemFontOfSize(9);
-      tipLbl.textColor = UIColor.lightGrayColor();
-      row.addSubview(tipLbl);
-
       scroll.addSubview(row);
       y += ROW_H + (opts.compact ? 4 : 6);
     }
@@ -177,9 +163,8 @@ function createShortcutsPane(config) {
     clearSubviews(scroll);
     for (const tag in actionIdByTag) delete actionIdByTag[tag];
     nextActionTag = 100;
-    addHint('点击键位可自定义修饰键与按键', 8, 20);
 
-    let y = 32;
+    let y = 10;
     y = addTargetToolsTab(y);
 
     if (targetToolsExpanded) {
