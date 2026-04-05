@@ -5,6 +5,57 @@ function createMNStylusFlowAddon(mainPath) {
     lastToolSlot: -1,
     lastToolClass: '',
   };
+  var _toolWatchState = {
+    lastSyncAt: 0,
+    syncIntervalMs: 450,
+    lastSignature: '',
+  };
+
+  function buildToolSignature(tools) {
+    if (!tools || !tools.length) return '0';
+    var parts = [];
+    for (var i = 0; i < tools.length; i++) {
+      var tool = tools[i];
+      parts.push(String(tool.slotIndex) + ':' + CanvasToolController.tryGetClassName(tool.view));
+    }
+    return parts.join('|');
+  }
+
+  function watchToolState(windowRef, force, allowRefresh) {
+    var now = Date.now();
+    if (!force && now - _toolWatchState.lastSyncAt < _toolWatchState.syncIntervalMs) {
+      return { changed: false, bindingListChanged: false, signatureChanged: false };
+    }
+    _toolWatchState.lastSyncAt = now;
+
+    var app = Application.sharedInstance();
+    var sc = app.studyController(windowRef);
+    if (!sc || !sc.view) {
+      var changedWhenMissing = ShortcutController.syncToolCount(0);
+      if (changedWhenMissing && allowRefresh && sc) sc.refreshAddonCommands();
+      if (_panel && _panel.isMounted() && changedWhenMissing) _panel.refreshShortcutBindings();
+      return { changed: changedWhenMissing, bindingListChanged: changedWhenMissing, signatureChanged: false };
+    }
+
+    var picker = CanvasToolController.find(sc.view);
+    var tools = picker ? CanvasToolController.detectAllTools(picker) : [];
+    var bindingListChanged = ShortcutController.syncToolCount(tools.length);
+    var signature = buildToolSignature(tools);
+    var signatureChanged = signature !== _toolWatchState.lastSignature;
+    _toolWatchState.lastSignature = signature;
+
+    if (bindingListChanged && allowRefresh) sc.refreshAddonCommands();
+    if (_panel && _panel.isMounted()) {
+      if (bindingListChanged) _panel.refreshShortcutBindings();
+      if (bindingListChanged || signatureChanged) _panel.refreshDebug();
+    }
+
+    return {
+      changed: bindingListChanged || signatureChanged,
+      bindingListChanged,
+      signatureChanged,
+    };
+  }
 
   function resolveTargetSlot(actionId, tools, state) {
     if (!tools || !tools.length) return -1;
@@ -55,18 +106,21 @@ function createMNStylusFlowAddon(mainPath) {
         self.mainPath = mainPath;
         ShortcutController.restorePersistedBindings();
         _panel = createToolPickerPanel(self);
+        watchToolState(self.window, true, true);
         if (_panel) _panel.refreshShortcutBindings();
         console.log("[StylusFlow] initialized");
       },
       sceneDidDisconnect: function () {
         if (_panel) _panel.unmount();
         _panel = null;
+        _toolWatchState.lastSignature = '';
         console.log("[StylusFlow] disconnected");
       },
       controllerWillLayoutSubviews: function (controller) {
-        if (!_panel || !_panel.isMounted()) return;
         var app = Application.sharedInstance();
         var sc = app.studyController(self.window);
+        if (controller === sc) watchToolState(self.window, false, true);
+        if (!_panel || !_panel.isMounted()) return;
         if (controller === sc && sc && sc.view) {
           _panel.relayoutWithinBounds(sc.view.bounds);
         }
@@ -80,12 +134,14 @@ function createMNStylusFlowAddon(mainPath) {
         };
       },
       additionalShortcutKeys: function () {
+        watchToolState(self.window, false, false);
         return ShortcutController.getAdditionalShortcutKeys();
       },
       queryShortcutKeyWithKeyFlags: function (command, keyFlags) {
         return ShortcutController.queryShortcut(command, keyFlags);
       },
       processShortcutKeyWithKeyFlags: function (command, keyFlags) {
+        watchToolState(self.window, false, true);
         var actionId = ShortcutController.resolveAction(command, keyFlags);
         if (!actionId) return false;
 
@@ -112,6 +168,7 @@ function createMNStylusFlowAddon(mainPath) {
         } else if (sc && sc.view) {
           _panel.mount(sc.view);
           _panel.relayoutWithinBounds(sc.view.bounds);
+          watchToolState(self.window, true, true);
         }
         if (sc) sc.refreshAddonCommands();
       },
@@ -131,6 +188,7 @@ function createMNStylusFlowAddon(mainPath) {
         if (sender.tag === DEBUG_TAB_INDEX) _panel.refreshDebug();
       },
       onScanTools: function () {
+        watchToolState(self.window, true, true);
         if (_panel) _panel.scan();
       },
       onResetAddonConfig: function () {
