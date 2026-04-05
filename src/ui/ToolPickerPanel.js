@@ -20,7 +20,7 @@ function createToolPickerPanel(addon) {
   titleBar.backgroundColor = UIColor.colorWithWhiteAlpha(0.2, 1);
 
   const titleLabel = new UILabel({ x: 12, y: 0, width: PANEL_W - 56, height: TITLE_H });
-  titleLabel.text = 'StylusFlow · 快捷键面板';
+  titleLabel.text = 'StylusFlow';
   titleLabel.font = UIFont.boldSystemFontOfSize(13);
   titleLabel.textColor = UIColor.whiteColor();
 
@@ -121,6 +121,9 @@ function createToolPickerPanel(addon) {
   function collectTools() {
     ensurePicker();
     tools = picker ? CanvasToolController.detectAllTools(picker) : [];
+    if (ShortcutController.syncToolCount(tools.length)) {
+      shortcutsPaneCtrl.updateBindings(ShortcutController.getBindingLabelMap());
+    }
     return tools;
   }
 
@@ -129,20 +132,14 @@ function createToolPickerPanel(addon) {
     return {
       isVisible: CanvasToolController.isVisible(picker),
       toolCount: toolList.length,
-      tools: toolList.map((tool, index) => {
-        let cls;
-        try {
-          cls = CanvasToolController.tryGetClassName(tool.view);
-        } catch (e) {
-          cls = 'UIControl';
-        }
-        return {
-          index,
-          slotIndex: tool.slotIndex,
-          cls,
-          view: NativeSerializer.serialize(tool.view),
-        };
-      }),
+      shortcuts: ShortcutController.getDebugState(),
+      tools: toolList.map((tool, index) => ({
+        index,
+        slotIndex: tool.slotIndex,
+        actionId: `tool.${tool.slotIndex + 1}`,
+        cls: CanvasToolController.tryGetClassName(tool.view),
+        view: NativeSerializer.serialize(tool.view),
+      })),
     };
   }
 
@@ -181,7 +178,10 @@ function createToolPickerPanel(addon) {
   function switchTab(idx) {
     shortcutsPane.hidden = idx !== TAB_SHORTCUTS;
     debugPane.hidden = idx !== TAB_DEBUG;
-    if (idx === TAB_SHORTCUTS) shortcutsPaneCtrl.onShow();
+    if (idx === TAB_SHORTCUTS) {
+      collectTools();
+      shortcutsPaneCtrl.updateBindings(ShortcutController.getBindingLabelMap());
+    }
     if (idx === TAB_DEBUG) debugPaneCtrl.onShow();
     applyTabStyle(idx);
   }
@@ -205,6 +205,30 @@ function createToolPickerPanel(addon) {
     debugPaneCtrl.toggleItem(idx);
   }
 
+  function refreshShortcutBindings() {
+    shortcutsPaneCtrl.updateBindings(ShortcutController.getBindingLabelMap());
+  }
+
+  function handleShortcutBindingTap(tag) {
+    return shortcutsPaneCtrl.handleBindingTap(tag);
+  }
+
+  function handleShortcutEditorModifierTap(tag) {
+    return shortcutsPaneCtrl.handleEditorModifierTap(tag);
+  }
+
+  function handleShortcutEditorCancel() {
+    return shortcutsPaneCtrl.handleEditorCancel();
+  }
+
+  function handleShortcutEditorClear() {
+    return shortcutsPaneCtrl.handleEditorClear();
+  }
+
+  function handleShortcutEditorSave() {
+    return shortcutsPaneCtrl.handleEditorSave();
+  }
+
   switchTab(TAB_SHORTCUTS);
 
   return {
@@ -219,5 +243,11 @@ function createToolPickerPanel(addon) {
     refreshDebug,
     toggleDebugItem,
     toggleDirectToolsTab: () => shortcutsPaneCtrl.toggleDirectToolsTab(),
+    refreshShortcutBindings,
+    handleShortcutBindingTap,
+    handleShortcutEditorModifierTap,
+    handleShortcutEditorCancel,
+    handleShortcutEditorClear,
+    handleShortcutEditorSave,
   };
 }

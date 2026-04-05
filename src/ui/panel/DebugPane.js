@@ -73,6 +73,17 @@ function createDebugPane(config) {
     addRow('可见状态', debugData.isVisible, 0);
     addRow('工具数量', debugData.toolCount, 0);
 
+    const shortcutState = debugData.shortcuts || {};
+    addRow('快捷键绑定', shortcutState.bindingCount || 0, 0);
+    addRow('触发次数', shortcutState.triggerCount || 0, 0);
+    addRow('最近快捷键', shortcutState.lastShortcut || '无', 0);
+    addRow('最近动作', shortcutState.lastActionTitle || '无', 0);
+    addRow('最近结果', shortcutState.lastResult || '未触发', 0);
+    addRow('最近时间', shortcutState.lastAt || '无', 0);
+    addRow('最近绑定项', shortcutState.lastBindingAction || '无', 0);
+    addRow('最近绑定值', shortcutState.lastBindingValue || '无', 0);
+    addRow('绑定更新时间', shortcutState.lastBindingAt || '无', 0);
+
     const debugTools = debugData.tools || [];
     for (let i = 0; i < debugTools.length; i++) {
       const tool = debugTools[i];
