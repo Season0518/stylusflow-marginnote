@@ -28,7 +28,13 @@ MarginNote 4 插件，让用户用键盘快捷键切换画布工具（上一个/
 ```
 src/
 ├── main.js                  ← 唯一入口，只做 JSB.require() + JSB.newAddon
-├── MNStylusFlowAddon.js     ← 插件生命周期 + 快捷键回调 + 面板事件委托
+├── MNStylusFlowAddon.js     ← 唯一 JSB.defineClass 调用点，组装 feature/* 后生成 JSExtension
+│
+├── feature/
+│   ├── composeAddonMethods.js ← 将多个 feature 方法片段合并成单一方法对象
+│   ├── lifecycleFeature.js    ← sceneWillConnect / Disconnect / controllerWillLayoutSubviews
+│   ├── shortcutFeature.js     ← queryAddonCommandStatus / additionalShortcutKeys / processShortcut / togglePanel
+│   └── panelEventFeature.js   ← 所有 on* 面板事件委托
 │
 ├── i18n/
 │   └── strings.js           ← 所有用户可见文字，通过 Strings.xxx 引用
@@ -90,7 +96,11 @@ src/
 18. ui/panel/DebugPane        ← 依赖 DebugView + Strings
 19. ui/ToolPickerView         ← 依赖 Strings
 20. ui/ToolPickerPanel        ← 依赖所有 UI 模块 + Controller + NativeSerializer
-21. MNStylusFlowAddon         ← 依赖所有模块，最后加载
+21. feature/composeAddonMethods ← 无业务依赖，纯工具函数
+22. feature/lifecycleFeature  ← 依赖 ShortcutController + ToolWatcher + createToolPickerPanel + Strings
+23. feature/shortcutFeature   ← 依赖 ToolWatcher + ShortcutController + CanvasToolController + ActionProcessor
+24. feature/panelEventFeature ← 依赖 ToolWatcher + ShortcutController
+25. MNStylusFlowAddon         ← 依赖所有 feature/*，唯一调用 JSB.defineClass 处
 ```
 
 ---
@@ -126,12 +136,40 @@ function createMyHandler(dep1, dep2, onCallback) {
 ```
 目前使用工厂函数的：`createShortcutEditorHandler`、`createShortcutsPane`、`createDebugPane`、`createToolPickerPanel`、`createMNStylusFlowAddon`。
 
-### 3. View / Logic 分离
+### 3. Feature 组合（JSExtension 方法分组）
+
+`JSB.defineClass` 的方法对象通过 `composeAddonMethods` 由多个 feature factory 组装而成，每个 feature 只关注一个关注点，返回方法片段：
+
+```js
+// feature/myFeature.js
+function myFeature(ctx) {
+  return {
+    onSomething: function () { ... ctx.panel ... },
+  };
+}
+
+// MNStylusFlowAddon.js
+function createMNStylusFlowAddon(mainPath) {
+  var ctx = { panel: null, shortcutState: { ... } };
+  return JSB.defineClass('MNStylusFlowAddon : JSExtension',
+    composeAddonMethods([
+      lifecycleFeature(ctx, mainPath),
+      shortcutFeature(ctx),
+      panelEventFeature(ctx),
+      myFeature(ctx),          // 新增特性：只需加一行
+    ])
+  );
+}
+```
+
+**注意**：feature 方法内可以使用 `self`（JSB 执行时注入），但不能在 feature factory 的函数体执行期（非返回方法内）读取 `self`。
+
+### 4. View / Logic 分离
 
 - **`*View.js`**：只创建 UIView/UILabel/UIButton，返回引用，不含业务逻辑
 - **`*Pane.js` / `*Handler.js`**：持有状态，处理事件，调用 `*View.js` 构建视图
 
-### 4. i18n
+### 5. i18n
 
 ```js
 // ❌ 禁止硬编码
@@ -158,6 +196,7 @@ button.setTitleForState(Strings.editor.save, 0);
 | 修改工具状态轮询频率 | `ToolWatcher.js`（syncIntervalMs） |
 | 修改持久化存储 key | `ShortcutStorage.js`（STORAGE_KEY） |
 | 添加新面板标签页 | `ToolPickerView.js`（Strings.panel.tabs）+ `ToolPickerPanel.js` |
+| 添加新 JSExtension 特性块 | 新建 `feature/xxxFeature.js` + 在 `main.js` 加 require + 在 `MNStylusFlowAddon.js` 的数组中追加 |
 | 修改用户可见文字 | `src/i18n/strings.js` |
 
 ---

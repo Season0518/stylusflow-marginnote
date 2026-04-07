@@ -19,6 +19,10 @@ JSB.require('ui/panel/debug/DebugView');
 JSB.require('ui/panel/DebugPane');
 JSB.require('ui/ToolPickerView');
 JSB.require('ui/ToolPickerPanel');
+JSB.require('feature/composeAddonMethods');
+JSB.require('feature/lifecycleFeature');
+JSB.require('feature/shortcutFeature');
+JSB.require('feature/panelEventFeature');
 JSB.require('MNStylusFlowAddon');
 
 JSB.newAddon = function (mainPath) {
