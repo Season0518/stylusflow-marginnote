@@ -5,18 +5,26 @@ function createToolPickerPanel(addon) {
   var TAB_SHORTCUTS = 0;
   var TAB_DEBUG = 1;
 
-  var view = ToolPickerView.build(addon);
+  var view = ToolPickerView.build();
   var rootView = view.rootView;
   var CONTENT_H = PANEL_H - view.TITLE_H - view.TAB_H;
 
-  var shortcutsPaneCtrl = createShortcutsPane({
+  // 事件绑定（View 层不挂事件，统一在此处理）
+  view.closeBtn.addTargetActionForControlEvents(addon, 'onPanelClose:', 1 << 6);
+  var panRecognizer = new UIPanGestureRecognizer(addon, 'onPanelPan:');
+  view.titleBar.addGestureRecognizer(panRecognizer);
+  for (var i = 0; i < view.tabBtns.length; i++) {
+    view.tabBtns[i].addTargetActionForControlEvents(addon, 'onTabSwitch:', 1 << 6);
+  }
+
+  var shortcutsPaneCtrl = createShortcutsView({
     panelWidth: PANEL_W,
     originY: view.TITLE_H + view.TAB_H,
     contentHeight: CONTENT_H,
     addon: addon,
   });
 
-  var debugPaneCtrl = createDebugPane({
+  var debugPaneCtrl = createDebugView({
     panelWidth: PANEL_W,
     originY: view.TITLE_H + view.TAB_H,
     contentHeight: CONTENT_H,

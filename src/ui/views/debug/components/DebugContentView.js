@@ -1,5 +1,5 @@
 // 负责构建 Debug 面板的纯视图结构，不含业务逻辑
-const DebugView = (function () {
+const DebugContentView = (function () {
   var PAD = 10;
   var ROW_H = 20;
 

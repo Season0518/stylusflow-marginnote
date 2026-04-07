@@ -24,8 +24,9 @@ const ToolPickerView = (function () {
     };
   }
 
-  // 构建面板视图，返回 { rootView, tabBtns, applyTabStyle }
-  function build(addon) {
+  // 构建面板视图，返回 { rootView, titleBar, closeBtn, tabBtns, applyTabStyle, TITLE_H, TAB_H }
+  // 注意：不挂接任何事件，由 ToolPickerPanel 负责绑定
+  function build() {
     var TITLE_H = 42;
     var TAB_H = 36;
 
@@ -50,13 +51,9 @@ const ToolPickerView = (function () {
     closeBtn.setTitleForState(Strings.panel.closeBtn, 0);
     closeBtn.setTitleColorForState(UIColor.colorWithWhiteAlpha(0.7, 1), 0);
     closeBtn.titleLabel.font = UIFont.systemFontOfSize(15);
-    closeBtn.addTargetActionForControlEvents(addon, 'onPanelClose:', 1 << 6);
 
     titleBar.addSubview(titleLabel);
     titleBar.addSubview(closeBtn);
-
-    var panRecognizer = new UIPanGestureRecognizer(addon, 'onPanelPan:');
-    titleBar.addGestureRecognizer(panRecognizer);
 
     var tabBar = new UIView({ x: 0, y: TITLE_H, width: PANEL_W, height: TAB_H });
     tabBar.backgroundColor = UIColor.colorWithWhiteAlpha(0.9, 1);
@@ -69,7 +66,6 @@ const ToolPickerView = (function () {
       tabBtn.setTitleForState(Strings.panel.tabs[i], 0);
       tabBtn.titleLabel.font = UIFont.systemFontOfSize(13);
       tabBtn.tag = i;
-      tabBtn.addTargetActionForControlEvents(addon, 'onTabSwitch:', 1 << 6);
       tabBar.addSubview(tabBtn);
       tabBtns.push(tabBtn);
     }
@@ -91,6 +87,8 @@ const ToolPickerView = (function () {
 
     return {
       rootView: rootView,
+      titleBar: titleBar,
+      closeBtn: closeBtn,
       tabBtns: tabBtns,
       applyTabStyle: applyTabStyle,
       TITLE_H: TITLE_H,

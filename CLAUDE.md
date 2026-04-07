@@ -57,17 +57,20 @@ src/
 │
 └── ui/
     ├── NativeSerializer.js              ← 原生对象序列化（用于 debug 展示）
-    ├── ToolPickerView.js    ← [VIEW] 面板容器/标签栏 UI 结构 + 布局工具函数
-    ├── ToolPickerPanel.js   ← [LOGIC] 面板协调（挂载/拖拽/扫描/标签切换）
-    └── panel/
-        ├── ShortcutsPane.js             ← [LOGIC] 快捷键面板协调器
-        ├── DebugPane.js                 ← [LOGIC] Debug 面板数据/刷新
-        ├── shortcut/
-        │   ├── ShortcutRowBuilder.js    ← [VIEW] 绑定行 UI 构建
-        │   ├── ShortcutEditorView.js    ← [VIEW] 编辑 Modal UI 构建
-        │   └── ShortcutEditorHandler.js ← [LOGIC] 编辑器状态管理（工厂函数）
+    ├── toolpicker/
+    │   ├── ToolPickerView.js  ← [VIEW] 面板容器/标签栏 UI 结构 + 布局工具函数
+    │   └── ToolPickerPanel.js ← [LOGIC] 面板协调（挂载/拖拽/扫描/标签切换）
+    └── views/
+        ├── shortcuts/
+        │   ├── ShortcutsView.js         ← [LOGIC] Shortcuts tab 视图协调器
+        │   └── components/
+        │       ├── ShortcutRow.js       ← [VIEW] 绑定行 UI 构建
+        │       ├── ShortcutEditorView.js← [VIEW] 编辑 Modal UI 构建
+        │       └── ShortcutEditor.js    ← [LOGIC] 编辑器状态管理（工厂函数）
         └── debug/
-            └── DebugView.js             ← [VIEW] Debug 面板 UI 构建
+            ├── DebugView.js             ← [LOGIC] Debug tab 视图协调器
+            └── components/
+                └── DebugContentView.js  ← [VIEW] Debug 面板 UI 构建
 ```
 
 ---
@@ -89,15 +92,15 @@ src/
 10. controller/ShortcutController          ← 依赖所有 shortcut/* 子模块，纯 wiring facade
 11. core/ToolWatcher          ← 依赖 CanvasToolController + ShortcutController
 12. core/ActionProcessor      ← 依赖 CanvasToolController + ShortcutController + Strings
-13. ui/NativeSerializer       ← 依赖 CanvasToolController
-14. ui/panel/shortcut/ShortcutRowBuilder   ← 依赖 Strings
-15. ui/panel/shortcut/ShortcutEditorView   ← 依赖 Strings + ShortcutFormatter
-16. ui/panel/shortcut/ShortcutEditorHandler← 依赖 ShortcutController + ShortcutEditorView
-17. ui/panel/ShortcutsPane    ← 依赖上面三个 + ShortcutController + ShortcutConstants
-18. ui/panel/debug/DebugView  ← 依赖 Strings
-19. ui/panel/DebugPane        ← 依赖 DebugView + Strings
-20. ui/ToolPickerView         ← 依赖 Strings
-21. ui/ToolPickerPanel        ← 依赖所有 UI 模块 + Controller + NativeSerializer
+13. ui/NativeSerializer                          ← 依赖 CanvasToolController
+14. ui/views/shortcuts/components/ShortcutRow    ← 依赖 Strings
+15. ui/views/shortcuts/components/ShortcutEditorView ← 依赖 Strings + ShortcutFormatter
+16. ui/views/shortcuts/components/ShortcutEditor ← 依赖 ShortcutController + ShortcutEditorView
+17. ui/views/shortcuts/ShortcutsView             ← 依赖上面三个 + ShortcutController + ShortcutConstants
+18. ui/views/debug/components/DebugContentView   ← 依赖 Strings
+19. ui/views/debug/DebugView                     ← 依赖 DebugContentView + Strings
+20. ui/toolpicker/ToolPickerView                 ← 依赖 Strings
+21. ui/toolpicker/ToolPickerPanel                ← 依赖所有 UI 模块 + Controller + NativeSerializer
 22. feature/composeAddonMethods ← 无业务依赖，纯工具函数
 23. feature/lifecycleFeature  ← 依赖 ShortcutController + ToolWatcher + createToolPickerPanel + Strings
 24. feature/shortcutFeature   ← 依赖 ToolWatcher + ShortcutController + CanvasToolController + ActionProcessor
@@ -136,7 +139,7 @@ function createMyHandler(dep1, dep2, onCallback) {
 }
 // 调用方：var handler = createMyHandler(...);
 ```
-目前使用工厂函数的：`createShortcutEditorHandler`、`createShortcutsPane`、`createDebugPane`、`createToolPickerPanel`、`createMNStylusFlowAddon`。
+目前使用工厂函数的：`createShortcutEditor`、`createShortcutsView`、`createDebugView`、`createToolPickerPanel`、`createMNStylusFlowAddon`。
 
 ### 3. Feature 组合（JSExtension 方法分组）
 
@@ -168,8 +171,12 @@ function createMNStylusFlowAddon(mainPath) {
 
 ### 4. View / Logic 分离
 
-- **`*View.js`**：只创建 UIView/UILabel/UIButton，返回引用，不含业务逻辑
-- **`*Pane.js` / `*Handler.js`**：持有状态，处理事件，调用 `*View.js` 构建视图
+UI 层采用 Vue-inspired 的 views/components 结构：
+- **`views/*/XxxView.js`**（Tab 级视图协调器）：持有 tab 内状态，委托视图构建给 components
+- **`views/*/components/XxxView.js`**：只创建 UIView/UILabel/UIButton，返回引用，不含业务逻辑
+- **`views/*/components/XxxEditor.js`**（组件级协调器）：持有子状态，处理事件
+- **`toolpicker/ToolPickerPanel.js`**：App shell，根级浮窗协调器
+- **`toolpicker/ToolPickerView.js`**：App shell 视图结构，纯 UI
 
 ### 5. i18n
 
@@ -190,10 +197,10 @@ button.setTitleForState(Strings.editor.save, 0);
 | 你要做什么 | 去改哪里 |
 |-----------|---------|
 | 添加新快捷键动作 | `ShortcutConstants.js`（ACTIONS）+ `strings.js`（名称）+ `ShortcutBindings.js`（逻辑） |
-| 修改快捷键绑定 UI | `ShortcutRowBuilder.js`（行）或 `ShortcutEditorView.js`（Modal）|
-| 修改编辑器保存/清除逻辑 | `ShortcutEditorHandler.js` |
-| 修改 Debug 面板显示的字段 | `DebugView.js`（UI）+ `DebugPane.js`（数据）|
-| 修改面板布局/尺寸 | `ToolPickerView.js`（PANEL_W/PANEL_H 常量在此）|
+| 修改快捷键绑定 UI | `ShortcutRow.js`（行）或 `ShortcutEditorView.js`（Modal）|
+| 修改编辑器保存/清除逻辑 | `ShortcutEditor.js` |
+| 修改 Debug 面板显示的字段 | `DebugContentView.js`（UI）+ `DebugView.js`（数据）|
+| 修改面板布局/尺寸 | `toolpicker/ToolPickerView.js`（PANEL_W/PANEL_H 常量在此）|
 | 修改工具切换逻辑 | `ActionProcessor.js` |
 | 修改工具状态轮询频率 | `ToolWatcher.js`（syncIntervalMs） |
 | 修改持久化存储 key | `ShortcutStorage.js`（STORAGE_KEY） |

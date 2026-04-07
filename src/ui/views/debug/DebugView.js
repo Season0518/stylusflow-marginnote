@@ -1,5 +1,5 @@
-// Debug 面板协调器：数据状态管理，视图构建委托给 DebugView
-function createDebugPane(config) {
+// Debug tab 视图协调器：数据状态管理，视图构建委托给 DebugContentView
+function createDebugView(config) {
   var panelWidth = config.panelWidth;
   var originY = config.originY;
   var contentHeight = config.contentHeight;
@@ -10,7 +10,7 @@ function createDebugPane(config) {
   pane.backgroundColor = UIColor.whiteColor();
   pane.hidden = true;
 
-  var btns = DebugView.buildButtons(pane, panelWidth);
+  var btns = DebugContentView.buildButtons(pane, panelWidth);
   btns.scanBtn.addTargetActionForControlEvents(addon, 'onScanTools:', 1 << 6);
   btns.resetBtn.addTargetActionForControlEvents(addon, 'onResetAddonConfig:', 1 << 6);
 
@@ -36,8 +36,8 @@ function createDebugPane(config) {
     }
 
     var y = 8;
-    y = DebugView.buildInfoRows(scroll, panelWidth, debugData, y);
-    var toolResult = DebugView.buildToolRows(
+    y = DebugContentView.buildInfoRows(scroll, panelWidth, debugData, y);
+    var toolResult = DebugContentView.buildToolRows(
       scroll, panelWidth, debugData.tools || [], expandedIndices, alignLeft, y
     );
     for (var i = 0; i < toolResult.toolButtons.length; i++) {

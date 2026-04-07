@@ -1,6 +1,6 @@
-// 负责编辑器的状态管理和事件处理，视图构建委托给 ShortcutEditorView
-// 使用工厂函数创建，由 ShortcutsPane 持有实例
-function createShortcutEditorHandler(pane, panelWidth, contentHeight, addon, onBindingsUpdated) {
+// 编辑器组件协调器：状态管理和事件处理，视图构建委托给 ShortcutEditorView
+// 使用工厂函数创建，由 ShortcutsView 持有实例
+function createShortcutEditor(pane, panelWidth, contentHeight, addon, onBindingsUpdated) {
   var FLAGS = ShortcutController.FLAGS;
   var modifierFlagByTag = {
     3101: FLAGS.COMMAND,

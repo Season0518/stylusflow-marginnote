@@ -1,6 +1,4 @@
 const ShortcutController = (function () {
-  ShortcutBindings.restorePersistedBindings();
-
   return {
     ACTIONS:                   ShortcutConstants.ACTIONS,
     FLAGS:                     ShortcutConstants.FLAGS,

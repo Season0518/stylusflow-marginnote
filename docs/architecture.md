@@ -36,9 +36,9 @@ MarginNote 调用 MNStylusFlowAddon.processShortcutKeyWithKeyFlags(command, keyF
   ↓
 MNStylusFlowAddon.onShortcutBindingTap(sender)
   → _panel.handleShortcutBindingTap(tag)
-  → ShortcutsPane.handleBindingTap(tag)
+  → ShortcutsView.handleBindingTap(tag)
   → actionIdByTag[tag] 查找 actionId
-  → ShortcutEditorHandler.open(actionId)
+  → ShortcutEditor.open(actionId)
       → ShortcutController.getBinding(actionId) 获取当前绑定
       → ShortcutEditorView.build({...}) 构建 Modal UI
       → 将 overlay 添加到 pane
@@ -47,8 +47,8 @@ MNStylusFlowAddon.onShortcutBindingTap(sender)
   ↓
 MNStylusFlowAddon.onShortcutEditorSave()
   → _panel.handleShortcutEditorSave()
-  → ShortcutsPane.handleEditorSave()
-  → ShortcutEditorHandler.handleSave()
+  → ShortcutsView.handleEditorSave()
+  → ShortcutEditor.handleSave()
       → ShortcutController.applyCustomBinding(actionId, input, flags)
           → ShortcutBindings.applyCustomBinding() 校验 + 规范化 + setBinding() 注册绑定 + 持久化
           → ShortcutRuntime.markBindingChanged() 记录 debug 状态
@@ -123,28 +123,28 @@ Editor Modal 中 tag 与 flag 的对应：
 
 ```
 MNStylusFlowAddon（JSExtension 实例）
-  └── ToolPickerPanel（面板协调器）
+  └── ToolPickerPanel（App shell 协调器）
         ├── ToolPickerView.build() → rootView（320×460 悬浮窗）
         │     ├── titleBar（42px，可拖拽）
         │     └── tabBar（36px，快捷键/调试）
-        ├── ShortcutsPane（contentHeight 区域，tab=0）
+        ├── ShortcutsView（contentHeight 区域，tab=0）
         │     ├── UIScrollView
-        │     │     ├── 指定工具切换 折叠行（ShortcutRowBuilder）
-        │     │     ├── [展开时] tool.1 ~ tool.N 行（ShortcutRowBuilder）
-        │     │     ├── tool.prev 行（ShortcutRowBuilder）
-        │     │     └── tool.next 行（ShortcutRowBuilder）
+        │     │     ├── 指定工具切换 折叠行（ShortcutRow）
+        │     │     ├── [展开时] tool.1 ~ tool.N 行（ShortcutRow）
+        │     │     ├── tool.prev 行（ShortcutRow）
+        │     │     └── tool.next 行（ShortcutRow）
         │     └── [编辑时] ShortcutEditorView overlay
         │           └── Modal（248px 高）
         │                 ├── 标题 + 动作名 + 当前绑定显示
         │                 ├── 4个修饰键按钮（tag 3101-3104）
         │                 ├── 按键输入框
         │                 └── 取消/清除/保存 按钮
-        └── DebugPane（contentHeight 区域，tab=1，hidden=true）
+        └── DebugView（contentHeight 区域，tab=1，hidden=true）
               ├── 扫描工具 按钮
               ├── 重置配置 按钮
               └── UIScrollView
-                    ├── key-value 信息行（DebugView.buildInfoRows）
-                    └── 工具列表行（DebugView.buildToolRows，可展开）
+                    ├── key-value 信息行（DebugContentView.buildInfoRows）
+                    └── 工具列表行（DebugContentView.buildToolRows，可展开）
 ```
 
 ---
@@ -159,11 +159,11 @@ MNStylusFlowAddon（JSExtension 实例）
 | `onPanelClose:` | MNStylusFlowAddon → _panel.unmount() |
 | `onPanelPan:` | MNStylusFlowAddon → _panel.handlePan() |
 | `onTabSwitch:` | MNStylusFlowAddon → _panel.switchTab(sender.tag) |
-| `onShortcutBindingTap:` | MNStylusFlowAddon → _panel → ShortcutsPane → EditorHandler.open() |
-| `onShortcutEditorModifierTap:` | MNStylusFlowAddon → _panel → ShortcutsPane → EditorHandler.handleModifierTap() |
-| `onShortcutEditorSave:` | MNStylusFlowAddon → _panel → ShortcutsPane → EditorHandler.handleSave() |
-| `onShortcutEditorClear:` | MNStylusFlowAddon → _panel → ShortcutsPane → EditorHandler.handleClear() |
-| `onShortcutEditorCancel:` | MNStylusFlowAddon → _panel → ShortcutsPane → EditorHandler.handleCancel() |
+| `onShortcutBindingTap:` | MNStylusFlowAddon → _panel → ShortcutsView → ShortcutEditor.open() |
+| `onShortcutEditorModifierTap:` | MNStylusFlowAddon → _panel → ShortcutsView → ShortcutEditor.handleModifierTap() |
+| `onShortcutEditorSave:` | MNStylusFlowAddon → _panel → ShortcutsView → ShortcutEditor.handleSave() |
+| `onShortcutEditorClear:` | MNStylusFlowAddon → _panel → ShortcutsView → ShortcutEditor.handleClear() |
+| `onShortcutEditorCancel:` | MNStylusFlowAddon → _panel → ShortcutsView → ShortcutEditor.handleCancel() |
 | `onScanTools:` | MNStylusFlowAddon → ToolWatcher.watch(force) + _panel.scan() |
 | `onResetAddonConfig:` | MNStylusFlowAddon → ShortcutController.clearAllPersistedConfig + restorePersistedBindings |
 | `onToggleDirectToolsTab:` | MNStylusFlowAddon → _panel → ShortcutsPane.toggleDirectToolsTab() |
@@ -197,6 +197,3 @@ function createXxx(config) {
 4. 用户可见文字放入 `i18n/strings.js`
 5. UI 结构放入 `*View.js`，业务逻辑放入对应逻辑文件
 
-### 死代码说明
-
-- `src/core/JSB.js`：使用了 ES6 `export` 语法，从未被 require，是死代码。MarginNote 提供的原生 `JSB` 全局对象与此文件无关。

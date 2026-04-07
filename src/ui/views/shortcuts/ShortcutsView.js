@@ -1,5 +1,5 @@
-// 快捷键面板协调器：组合 ShortcutRowBuilder + ShortcutEditorHandler
-function createShortcutsPane(config) {
+// Shortcuts tab 视图协调器：组合 ShortcutRow + ShortcutEditor
+function createShortcutsView(config) {
   var panelWidth = config.panelWidth;
   var originY = config.originY;
   var contentHeight = config.contentHeight;
@@ -39,10 +39,10 @@ function createShortcutsPane(config) {
     nextActionTag = 100;
 
     var y = 10;
-    y = ShortcutRowBuilder.buildTargetToolsTabRow(scroll, panelWidth, targetToolsExpanded, addon, y);
+    y = ShortcutRow.buildTargetToolsTabRow(scroll, panelWidth, targetToolsExpanded, addon, y);
 
     if (targetToolsExpanded) {
-      var expandedRes = ShortcutRowBuilder.buildRows(
+      var expandedRes = ShortcutRow.buildRows(
         scroll, panelWidth, targetToolItems(),
         { compact: true, indent: 20 },
         getBindingLabel, addon, actionIdByTag, nextActionTag, y
@@ -51,7 +51,7 @@ function createShortcutsPane(config) {
       nextActionTag = expandedRes.nextTag;
     }
 
-    var cycleRes = ShortcutRowBuilder.buildRows(
+    var cycleRes = ShortcutRow.buildRows(
       scroll, panelWidth, cycleShortcutItems,
       { compact: false, indent: 12 },
       getBindingLabel, addon, actionIdByTag, nextActionTag, y
@@ -80,7 +80,7 @@ function createShortcutsPane(config) {
     renderWithLightTransition();
   }
 
-  var editorHandler = createShortcutEditorHandler(
+  var editor = createShortcutEditor(
     pane, panelWidth, contentHeight, addon, onBindingsUpdated
   );
 
@@ -97,7 +97,7 @@ function createShortcutsPane(config) {
   function handleBindingTap(tag) {
     var actionId = actionIdByTag[tag];
     if (!actionId) return false;
-    editorHandler.open(actionId);
+    editor.open(actionId);
     return true;
   }
 
@@ -109,9 +109,9 @@ function createShortcutsPane(config) {
     toggleDirectToolsTab: toggleDirectToolsTab,
     updateBindings: updateBindings,
     handleBindingTap: handleBindingTap,
-    handleEditorModifierTap: editorHandler.handleModifierTap,
-    handleEditorCancel: editorHandler.handleCancel,
-    handleEditorClear: editorHandler.handleClear,
-    handleEditorSave: editorHandler.handleSave,
+    handleEditorModifierTap: editor.handleModifierTap,
+    handleEditorCancel: editor.handleCancel,
+    handleEditorClear: editor.handleClear,
+    handleEditorSave: editor.handleSave,
   };
 }
