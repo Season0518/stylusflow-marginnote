@@ -1,5 +1,5 @@
 // 负责解析动作 ID 并执行工具切换
-var ActionProcessor = (function () {
+const ActionProcessor = (function () {
 
   function resolveTargetSlot(actionId, tools, state) {
     if (!tools || !tools.length) return -1;

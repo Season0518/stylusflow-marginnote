@@ -65,12 +65,17 @@ function createShortcutEditorHandler(pane, panelWidth, contentHeight, addon, onB
       actionTitle: ShortcutConstants.toolActionTitle(actionId),
       currentBinding: currentBinding,
       initialFlags: _editorFlags,
-      addon: addon,
     });
 
     _editorOverlay = built.overlay;
     _editorKeyField = built.keyField;
     _modifierButtons = built.modifierButtons;
+    for (var tag in _modifierButtons) {
+      _modifierButtons[tag].addTargetActionForControlEvents(addon, 'onShortcutEditorModifierTap:', 1 << 6);
+    }
+    built.cancelBtn.addTargetActionForControlEvents(addon, 'onShortcutEditorCancel:', 1 << 6);
+    built.clearBtn.addTargetActionForControlEvents(addon, 'onShortcutEditorClear:', 1 << 6);
+    built.saveBtn.addTargetActionForControlEvents(addon, 'onShortcutEditorSave:', 1 << 6);
     updateAllModifierButtons();
     pane.addSubview(_editorOverlay);
   }

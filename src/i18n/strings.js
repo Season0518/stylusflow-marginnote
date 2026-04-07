@@ -1,4 +1,4 @@
-var Strings = Object.freeze({
+const Strings = Object.freeze({
   actions: {
     prevTool: '切换上一个工具',
     nextTool: '切换下一个工具',

@@ -1,5 +1,5 @@
 // 负责构建快捷键列表行的 UI 结构，无业务逻辑
-var ShortcutRowBuilder = (function () {
+const ShortcutRowBuilder = (function () {
   var KEY_W = 86;
   var PAD = 10;
 

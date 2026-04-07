@@ -1,5 +1,5 @@
 // 负责工具状态的定时轮询与变化检测
-var ToolWatcher = (function () {
+const ToolWatcher = (function () {
   var _state = {
     lastSyncAt: 0,
     syncIntervalMs: 450,
@@ -16,8 +16,8 @@ var ToolWatcher = (function () {
     return parts.join('|');
   }
 
-  // windowRef: addon.window; force: 是否跳过节流; allowRefresh: 是否允许触发刷新命令; panel: 面板实例
-  function watch(windowRef, force, allowRefresh, panel) {
+  // windowRef: addon.window; force: 是否跳过节流; allowRefresh: 是否允许触发刷新命令
+  function watch(windowRef, force, allowRefresh) {
     var now = Date.now();
     if (!force && now - _state.lastSyncAt < _state.syncIntervalMs) {
       return { changed: false, bindingListChanged: false, signatureChanged: false };
@@ -29,7 +29,6 @@ var ToolWatcher = (function () {
     if (!sc || !sc.view) {
       var changed = ShortcutController.syncToolCount(0);
       if (changed && allowRefresh && sc) sc.refreshAddonCommands();
-      if (panel && panel.isMounted() && changed) panel.refreshShortcutBindings();
       return { changed: changed, bindingListChanged: changed, signatureChanged: false };
     }
 
@@ -41,10 +40,6 @@ var ToolWatcher = (function () {
     _state.lastSignature = signature;
 
     if (bindingListChanged && allowRefresh) sc.refreshAddonCommands();
-    if (panel && panel.isMounted()) {
-      if (bindingListChanged) panel.refreshShortcutBindings();
-      if (bindingListChanged || signatureChanged) panel.refreshDebug();
-    }
 
     return {
       changed: bindingListChanged || signatureChanged,

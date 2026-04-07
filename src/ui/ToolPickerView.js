@@ -1,5 +1,5 @@
 // 负责构建面板容器的纯视图结构及布局工具函数
-var ToolPickerView = (function () {
+const ToolPickerView = (function () {
   var PANEL_W = 320;
   var PANEL_H = 460;
 

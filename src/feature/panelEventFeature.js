@@ -14,7 +14,11 @@ function panelEventFeature(ctx) {
       if (sender.tag === DEBUG_TAB_INDEX) ctx.panel.refreshDebug();
     },
     onScanTools: function () {
-      ToolWatcher.watch(self.window, true, true, ctx.panel);
+      var r = ToolWatcher.watch(self.window, true, true);
+      if (ctx.panel && ctx.panel.isMounted()) {
+        if (r.bindingListChanged) ctx.panel.refreshShortcutBindings();
+        if (r.bindingListChanged || r.signatureChanged) ctx.panel.refreshDebug();
+      }
       if (ctx.panel) ctx.panel.scan();
     },
     onResetAddonConfig: function () {

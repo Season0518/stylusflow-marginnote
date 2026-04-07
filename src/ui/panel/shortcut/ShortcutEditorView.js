@@ -1,15 +1,14 @@
 // 负责构建快捷键编辑 Modal 的纯视图结构，不含业务逻辑
-var ShortcutEditorView = (function () {
+const ShortcutEditorView = (function () {
 
-  // 构建编辑 Modal，返回 { overlay, keyField, modifierButtons }
-  // config: { panelWidth, contentHeight, actionTitle, currentBinding, initialFlags, addon }
+  // 构建编辑 Modal，返回 { overlay, keyField, modifierButtons, cancelBtn, clearBtn, saveBtn }（不挂事件）
+  // config: { panelWidth, contentHeight, actionTitle, currentBinding, initialFlags }
   function build(config) {
     var panelWidth = config.panelWidth;
     var contentHeight = config.contentHeight;
     var actionTitle = config.actionTitle;
     var currentBinding = config.currentBinding;
     var initialFlags = config.initialFlags;
-    var addon = config.addon;
 
     var overlay = new UIView({ x: 0, y: 0, width: panelWidth, height: contentHeight });
     overlay.backgroundColor = UIColor.colorWithWhiteAlpha(0.1, 0.45);
@@ -72,7 +71,6 @@ var ShortcutEditorView = (function () {
       btn.layer.masksToBounds = true;
       btn.layer.borderWidth = 0.5;
       btn.layer.borderColor = UIColor.lightGrayColor().colorWithAlphaComponent(0.45);
-      btn.addTargetActionForControlEvents(addon, 'onShortcutEditorModifierTap:', 1 << 6);
       modifierButtons[def.tag] = btn;
       modal.addSubview(btn);
     }
@@ -97,7 +95,6 @@ var ShortcutEditorView = (function () {
     cancelBtn.backgroundColor = UIColor.colorWithWhiteAlpha(0.93, 1);
     cancelBtn.layer.cornerRadius = 6;
     cancelBtn.layer.masksToBounds = true;
-    cancelBtn.addTargetActionForControlEvents(addon, 'onShortcutEditorCancel:', 1 << 6);
     modal.addSubview(cancelBtn);
 
     var clearBtn = UIButton.buttonWithType(0);
@@ -108,7 +105,6 @@ var ShortcutEditorView = (function () {
     clearBtn.backgroundColor = UIColor.colorWithWhiteAlpha(0.93, 1);
     clearBtn.layer.cornerRadius = 6;
     clearBtn.layer.masksToBounds = true;
-    clearBtn.addTargetActionForControlEvents(addon, 'onShortcutEditorClear:', 1 << 6);
     modal.addSubview(clearBtn);
 
     var saveBtn = UIButton.buttonWithType(0);
@@ -119,11 +115,17 @@ var ShortcutEditorView = (function () {
     saveBtn.backgroundColor = UIColor.colorWithWhiteAlpha(0.3, 1);
     saveBtn.layer.cornerRadius = 6;
     saveBtn.layer.masksToBounds = true;
-    saveBtn.addTargetActionForControlEvents(addon, 'onShortcutEditorSave:', 1 << 6);
     modal.addSubview(saveBtn);
 
     overlay.addSubview(modal);
-    return { overlay: overlay, keyField: keyField, modifierButtons: modifierButtons };
+    return {
+      overlay: overlay,
+      keyField: keyField,
+      modifierButtons: modifierButtons,
+      cancelBtn: cancelBtn,
+      clearBtn: clearBtn,
+      saveBtn: saveBtn,
+    };
   }
 
   return { build: build };

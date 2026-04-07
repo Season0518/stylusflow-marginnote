@@ -1,13 +1,7 @@
 // 负责构建 Debug 面板的纯视图结构，不含业务逻辑
-var DebugView = (function () {
+const DebugView = (function () {
   var PAD = 10;
   var ROW_H = 20;
-
-  function clearSubviews(view) {
-    var subs = view.subviews;
-    if (!subs) return;
-    for (var i = 0; i < subs.length; i++) subs[i].removeFromSuperview();
-  }
 
   // 共享 key-value 行构建，返回下一行 y
   function addKVRow(scroll, panelWidth, y, key, value, indent) {
@@ -27,8 +21,8 @@ var DebugView = (function () {
     return y + ROW_H + 2;
   }
 
-  // 构建顶部扫描/重置按钮
-  function buildButtons(pane, panelWidth, addon) {
+  // 构建顶部扫描/重置按钮，返回 { scanBtn, resetBtn }（不挂事件）
+  function buildButtons(pane, panelWidth) {
     var btnW = (panelWidth - 28) / 2;
 
     var scanBtn = UIButton.buttonWithType(0);
@@ -39,7 +33,6 @@ var DebugView = (function () {
     scanBtn.titleLabel.font = UIFont.systemFontOfSize(13);
     scanBtn.layer.cornerRadius = 7;
     scanBtn.layer.masksToBounds = true;
-    scanBtn.addTargetActionForControlEvents(addon, 'onScanTools:', 1 << 6);
     pane.addSubview(scanBtn);
 
     var resetBtn = UIButton.buttonWithType(0);
@@ -50,8 +43,9 @@ var DebugView = (function () {
     resetBtn.titleLabel.font = UIFont.systemFontOfSize(13);
     resetBtn.layer.cornerRadius = 7;
     resetBtn.layer.masksToBounds = true;
-    resetBtn.addTargetActionForControlEvents(addon, 'onResetAddonConfig:', 1 << 6);
     pane.addSubview(resetBtn);
+
+    return { scanBtn: scanBtn, resetBtn: resetBtn };
   }
 
   // 渲染快捷键状态信息行，返回最终 y
@@ -73,10 +67,11 @@ var DebugView = (function () {
     return y;
   }
 
-  // 渲染工具行（含展开详情），返回最终 y（绝对坐标）
-  function buildToolRows(scroll, panelWidth, tools, expandedIndices, addon, alignLeft, startY) {
+  // 渲染工具行（含展开详情），返回 { finalY, toolButtons: [{tBtn, actBtn}] }（不挂事件）
+  function buildToolRows(scroll, panelWidth, tools, expandedIndices, alignLeft, startY) {
     var ACTIVATE_W = 64;
     var y = startY || 0;
+    var toolButtons = [];
 
     for (var i = 0; i < tools.length; i++) {
       var tool = tools[i];
@@ -93,7 +88,6 @@ var DebugView = (function () {
       tBtn.layer.cornerRadius = 5;
       tBtn.layer.masksToBounds = true;
       tBtn.tag = i;
-      tBtn.addTargetActionForControlEvents(addon, 'onDebugToggle:', 1 << 6);
       scroll.addSubview(tBtn);
 
       var actBtn = UIButton.buttonWithType(0);
@@ -105,8 +99,8 @@ var DebugView = (function () {
       actBtn.layer.cornerRadius = 5;
       actBtn.layer.masksToBounds = true;
       actBtn.tag = i;
-      actBtn.addTargetActionForControlEvents(addon, 'onActivateTool:', 1 << 6);
       scroll.addSubview(actBtn);
+      toolButtons.push({ tBtn: tBtn, actBtn: actBtn });
       y += 30;
 
       if (expanded && tool.view && typeof tool.view === 'object') {
@@ -120,11 +114,10 @@ var DebugView = (function () {
         }
       }
     }
-    return y;
+    return { finalY: y, toolButtons: toolButtons };
   }
 
   return {
-    clearSubviews: clearSubviews,
     buildButtons: buildButtons,
     buildInfoRows: buildInfoRows,
     buildToolRows: buildToolRows,

@@ -4,14 +4,18 @@ function shortcutFeature(ctx) {
       return { image: 'icon.png', object: self, selector: 'togglePanel:', checked: !!(ctx.panel && ctx.panel.isMounted()) };
     },
     additionalShortcutKeys: function () {
-      ToolWatcher.watch(self.window, false, false, ctx.panel);
+      var r = ToolWatcher.watch(self.window, false, false);
+      if (ctx.panel && ctx.panel.isMounted()) {
+        if (r.bindingListChanged) ctx.panel.refreshShortcutBindings();
+        if (r.bindingListChanged || r.signatureChanged) ctx.panel.refreshDebug();
+      }
       return ShortcutController.getAdditionalShortcutKeys();
     },
     queryShortcutKeyWithKeyFlags: function (command, keyFlags) {
       return ShortcutController.queryShortcut(command, keyFlags);
     },
     processShortcutKeyWithKeyFlags: function (command, keyFlags) {
-      ToolWatcher.watch(self.window, false, true, ctx.panel);
+      ToolWatcher.watch(self.window, false, true);
       var actionId = ShortcutController.resolveAction(command, keyFlags);
       if (!actionId) return false;
 
@@ -37,7 +41,11 @@ function shortcutFeature(ctx) {
       } else if (sc && sc.view) {
         ctx.panel.mount(sc.view);
         ctx.panel.relayoutWithinBounds(sc.view.bounds);
-        ToolWatcher.watch(self.window, true, true, ctx.panel);
+        var r = ToolWatcher.watch(self.window, true, true);
+        if (ctx.panel && ctx.panel.isMounted()) {
+          if (r.bindingListChanged) ctx.panel.refreshShortcutBindings();
+          if (r.bindingListChanged || r.signatureChanged) ctx.panel.refreshDebug();
+        }
       }
       if (sc) sc.refreshAddonCommands();
     },

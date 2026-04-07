@@ -10,7 +10,9 @@ function createDebugPane(config) {
   pane.backgroundColor = UIColor.whiteColor();
   pane.hidden = true;
 
-  DebugView.buildButtons(pane, panelWidth, addon);
+  var btns = DebugView.buildButtons(pane, panelWidth);
+  btns.scanBtn.addTargetActionForControlEvents(addon, 'onScanTools:', 1 << 6);
+  btns.resetBtn.addTargetActionForControlEvents(addon, 'onResetAddonConfig:', 1 << 6);
 
   var scroll = new UIScrollView({ x: 0, y: 56, width: panelWidth, height: contentHeight - 56 });
   scroll.alwaysBounceVertical = true;
@@ -20,7 +22,7 @@ function createDebugPane(config) {
   var debugData = null;
 
   function render() {
-    DebugView.clearSubviews(scroll);
+    UIViewTree.clearSubviews(scroll);
 
     if (!debugData) {
       var lbl = new UILabel({ x: 0, y: 20, width: panelWidth, height: 30 });
@@ -35,10 +37,14 @@ function createDebugPane(config) {
 
     var y = 8;
     y = DebugView.buildInfoRows(scroll, panelWidth, debugData, y);
-    var finalY = DebugView.buildToolRows(
-      scroll, panelWidth, debugData.tools || [], expandedIndices, addon, alignLeft, y
+    var toolResult = DebugView.buildToolRows(
+      scroll, panelWidth, debugData.tools || [], expandedIndices, alignLeft, y
     );
-    scroll.contentSize = { width: panelWidth, height: finalY + 8 };
+    for (var i = 0; i < toolResult.toolButtons.length; i++) {
+      toolResult.toolButtons[i].tBtn.addTargetActionForControlEvents(addon, 'onDebugToggle:', 1 << 6);
+      toolResult.toolButtons[i].actBtn.addTargetActionForControlEvents(addon, 'onActivateTool:', 1 << 6);
+    }
+    scroll.contentSize = { width: panelWidth, height: toolResult.finalY + 8 };
   }
 
   function updateData(nextDebugData) {

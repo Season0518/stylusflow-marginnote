@@ -111,10 +111,10 @@ src/
 
 ### 1. 全局模块（IIFE）
 
-大多数模块用 IIFE 暴露全局对象：
+全局 IIFE 模块统一用 `const` 声明（不可重新赋值，与 `ShortcutConstants` 等 controller 层保持一致）：
 
 ```js
-var MyModule = (function () {
+const MyModule = (function () {
   // 私有状态和函数
   function privateHelper() { ... }
 
@@ -220,10 +220,11 @@ CanvasToolController.activate(toolView) → bool
 
 UIViewTree.findNodeByClass(root, className) → view | null
 UIViewTree.collectVisibleActionControls(root, maxDepth) → [view]
+UIViewTree.clearSubviews(view) → void
 UIViewTree.isVisible(view) → bool
 UIViewTree.getClassName(obj) → string
 
-ToolWatcher.watch(windowRef, force, allowRefresh, panel) → {changed, bindingListChanged, signatureChanged}
+ToolWatcher.watch(windowRef, force, allowRefresh) → {changed, bindingListChanged, signatureChanged}
 ToolWatcher.reset()
 
 ActionProcessor.process(actionId, picker, state) → {handled, reason, slotIndex, bindingListChanged}

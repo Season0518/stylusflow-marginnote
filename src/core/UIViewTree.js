@@ -1,5 +1,5 @@
 // iOS view 层级遍历工具函数库（全局对象，供所有模块共享）
-var UIViewTree = (function () {
+const UIViewTree = (function () {
 
   function safeValue(obj, key, fallback) {
     try {
@@ -62,6 +62,12 @@ var UIViewTree = (function () {
     return false;
   }
 
+  function clearSubviews(view) {
+    var subs = view.subviews;
+    if (!subs) return;
+    for (var i = 0; i < subs.length; i++) subs[i].removeFromSuperview();
+  }
+
   // BFS 查找第一个匹配类名的节点
   function findNodeByClass(rootNode, targetClass) {
     if (!rootNode || !targetClass) return null;
@@ -104,6 +110,7 @@ var UIViewTree = (function () {
     isActionControl: isActionControl,
     getAbsoluteX: getAbsoluteX,
     triggerTouch: triggerTouch,
+    clearSubviews: clearSubviews,
     findNodeByClass: findNodeByClass,
     collectVisibleActionControls: collectVisibleActionControls,
   };

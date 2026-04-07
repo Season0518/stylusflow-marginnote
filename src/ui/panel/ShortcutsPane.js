@@ -33,14 +33,8 @@ function createShortcutsPane(config) {
     });
   }
 
-  function clearSubviews(view) {
-    var subs = view.subviews;
-    if (!subs) return;
-    for (var i = 0; i < subs.length; i++) subs[i].removeFromSuperview();
-  }
-
   function render() {
-    clearSubviews(scroll);
+    UIViewTree.clearSubviews(scroll);
     for (var tag in actionIdByTag) delete actionIdByTag[tag];
     nextActionTag = 100;
 
