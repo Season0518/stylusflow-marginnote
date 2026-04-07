@@ -1,70 +1,110 @@
-import { JSB } from './JSB';
+// iOS view 层级遍历工具函数库（全局对象，供所有模块共享）
+var UIViewTree = (function () {
 
-export const UIViewTree = {
-  getSubviews(view) {
-    return JSB.toArray(JSB.safeValue(view, 'subviews', []));
-  },
+  function safeValue(obj, key, fallback) {
+    try {
+      var v = obj[key];
+      return (v === undefined || v === null) ? fallback : v;
+    } catch (e) { return fallback; }
+  }
 
-  isVisible(view) {
+  function toArray(collection) {
+    if (!collection) return [];
+    if (Array.isArray(collection)) return collection;
+    var result = [];
+    try {
+      var count = typeof collection.count === 'function' ? collection.count() : collection.count;
+      for (var i = 0; i < count; i++) result.push(collection.objectAtIndex(i));
+      return result;
+    } catch (e) {}
+    try { return Array.prototype.slice.call(collection); } catch (e) { return []; }
+  }
+
+  function getClassName(obj) {
+    if (!obj) return 'Unknown';
+    try {
+      if (typeof obj.className === 'function') return String(obj.className());
+      if (obj.className) return String(obj.className);
+      if (obj.constructor && obj.constructor.name) return String(obj.constructor.name);
+    } catch (e) {}
+    return 'Unknown';
+  }
+
+  function getSubviews(view) {
+    return toArray(safeValue(view, 'subviews', []));
+  }
+
+  function isVisible(view) {
     if (!view) return false;
-    if (JSB.safeValue(view, 'hidden', false) === true) return false;
-    if (JSB.safeValue(view, 'alpha', 1.0) <= 0.01) return false;
-    const frame = JSB.safeValue(view, 'frame', null);
+    if (safeValue(view, 'hidden', false) === true) return false;
+    if (safeValue(view, 'alpha', 1.0) <= 0.01) return false;
+    var frame = safeValue(view, 'frame', null);
     if (frame && (frame.width === 0 || frame.height === 0)) return false;
     return true;
-  },
+  }
 
-  isActionControl(view) {
+  function isActionControl(view) {
     try { return !!view && typeof view.sendActionsForControlEvents === 'function'; } catch (e) { return false; }
-  },
+  }
 
-  getAbsoluteX(view, targetContainer) {
+  function getAbsoluteX(view, container) {
     try {
-      return view.convertRectToView(view.bounds, targetContainer).x;
+      return view.convertRectToView(view.bounds, container).x;
     } catch (e) {
-      return JSB.safeValue(JSB.safeValue(view, 'frame', {}), 'x', 0);
+      return safeValue(safeValue(view, 'frame', {}), 'x', 0);
     }
-  },
+  }
 
-  triggerTouch(view) {
+  function triggerTouch(view) {
     if (!view) return false;
     try { view.sendActionsForControlEvents(1 << 6); return true; } catch (e) {}
     try { view.sendActionsForControlEvents(1 << 0); return true; } catch (e) {}
     return false;
-  },
+  }
 
-  findNodeByClass(rootNode, targetClass) {
+  // BFS 查找第一个匹配类名的节点
+  function findNodeByClass(rootNode, targetClass) {
     if (!rootNode || !targetClass) return null;
-    const queue = [rootNode];
-    let head = 0;
+    var queue = [rootNode];
+    var head = 0;
     while (head < queue.length) {
-      const v = queue[head++];
+      var v = queue[head++];
       if (!v) continue;
-      if (JSB.getClassName(v) === targetClass) return v;
-      
-      const subs = this.getSubviews(v);
-      for (let i = 0; i < subs.length; i++) queue.push(subs[i]);
+      if (getClassName(v) === targetClass) return v;
+      var subs = getSubviews(v);
+      for (var i = 0; i < subs.length; i++) queue.push(subs[i]);
     }
     return null;
-  },
+  }
 
-  collectVisibleActionControls(rootNode, maxDepth = 5) {
-    const out = [];
-    const seen = new Set();
-
-    const traverse = (node, depth) => {
-      if (!node || depth > maxDepth || !this.isVisible(node)) return;
-      
-      if (this.isActionControl(node) && !seen.has(node)) {
-        seen.add(node);
+  // DFS 收集所有可见的 ActionControl 节点
+  function collectVisibleActionControls(rootNode, maxDepth) {
+    var depth = maxDepth === undefined ? 5 : maxDepth;
+    var out = [];
+    var seen = [];
+    function traverse(node, d) {
+      if (!node || d > depth || !isVisible(node)) return;
+      if (isActionControl(node) && seen.indexOf(node) < 0) {
+        seen.push(node);
         out.push(node);
       }
-      
-      const subs = this.getSubviews(node);
-      for (let i = 0; i < subs.length; i++) traverse(subs[i], depth + 1);
-    };
-
+      var subs = getSubviews(node);
+      for (var i = 0; i < subs.length; i++) traverse(subs[i], d + 1);
+    }
     traverse(rootNode, 0);
     return out;
   }
-};
+
+  return {
+    safeValue: safeValue,
+    toArray: toArray,
+    getClassName: getClassName,
+    getSubviews: getSubviews,
+    isVisible: isVisible,
+    isActionControl: isActionControl,
+    getAbsoluteX: getAbsoluteX,
+    triggerTouch: triggerTouch,
+    findNodeByClass: findNodeByClass,
+    collectVisibleActionControls: collectVisibleActionControls,
+  };
+})();
