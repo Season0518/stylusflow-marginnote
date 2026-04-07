@@ -37,6 +37,9 @@ var Strings = Object.freeze({
     activate: '激活',
     none: '无',
     noTrigger: '未触发',
+    executed: '已执行',
+    notExecuted: '未执行',
+    notSet: '未设置',
     slotLabel: function (cls, slot) { return '[' + cls + ']  槽位 ' + slot; },
     fields: {
       visible: '可见状态',

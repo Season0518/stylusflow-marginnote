@@ -2,20 +2,22 @@ const ShortcutRuntime = (() => {
   const { toolActionTitle } = ShortcutConstants;
   const { formatShortcutLabel, timestampLabel } = ShortcutFormatter;
 
+  const { none, noTrigger, executed, notExecuted, notSet } = Strings.debug;
+
   const runtime = {
     triggerCount: 0,
-    lastShortcut: '无',
-    lastActionTitle: '无',
-    lastResult: '未触发',
-    lastAt: '无',
-    lastBindingAction: '无',
-    lastBindingValue: '无',
-    lastBindingAt: '无',
+    lastShortcut: none,
+    lastActionTitle: none,
+    lastResult: noTrigger,
+    lastAt: none,
+    lastBindingAction: none,
+    lastBindingValue: none,
+    lastBindingAt: none,
   };
 
   function markBindingChanged(actionId, display) {
     runtime.lastBindingAction = toolActionTitle(actionId);
-    runtime.lastBindingValue = display || '未设置';
+    runtime.lastBindingValue = display || notSet;
     runtime.lastBindingAt = timestampLabel();
   }
 
@@ -23,7 +25,7 @@ const ShortcutRuntime = (() => {
     runtime.triggerCount += 1;
     runtime.lastShortcut = formatShortcutLabel(command, keyFlags);
     runtime.lastActionTitle = toolActionTitle(actionId);
-    runtime.lastResult = result?.handled ? '已执行' : (result?.reason || '未执行');
+    runtime.lastResult = result?.handled ? executed : (result?.reason || notExecuted);
     runtime.lastAt = timestampLabel();
   }
 
