@@ -50,8 +50,8 @@ MNStylusFlowAddon.onShortcutEditorSave()
   → ShortcutsPane.handleEditorSave()
   → ShortcutEditorHandler.handleSave()
       → ShortcutController.applyCustomBinding(actionId, input, flags)
-          → ShortcutFormatter.normalizeCustomInput(input) 规范化按键
-          → ShortcutBindings.setBinding() 注册绑定 + 持久化
+          → ShortcutBindings.applyCustomBinding() 校验 + 规范化 + setBinding() 注册绑定 + 持久化
+          → ShortcutRuntime.markBindingChanged() 记录 debug 状态
       → onBindingsUpdated() 回调（更新 bindingLabelMap，重渲染列表）
       → dismiss() 关闭 Modal
   → _panel.refreshShortcutBindings() 更新显示
@@ -69,8 +69,8 @@ MNStylusFlowAddon.onShortcutEditorSave()
 | `_shortcutState.lastToolSlot` | MNStylusFlowAddon | 上次激活的工具槽位（用于 prev/next 计算） |
 | `_panel` | MNStylusFlowAddon | 面板实例引用 |
 | `ToolWatcher._state` | ToolWatcher | 上次同步时间 + 工具特征签名 |
-| `ShortcutBindings.bindings` | ShortcutBindings | 当前所有绑定（actionId → binding） |
-| `ShortcutBindings.reverseMap` | ShortcutBindings | 反查表（input__flags → actionId） |
+| `ShortcutRegistry.bindings` | ShortcutRegistry | 当前所有绑定（actionId → binding） |
+| `ShortcutRegistry.reverseMap` | ShortcutRegistry | 反查表（input__flags → actionId） |
 | `ShortcutRuntime.runtime` | ShortcutRuntime | Debug 统计（触发次数、最近动作等） |
 
 ### 持久化状态（NSUserDefaults）
@@ -165,7 +165,7 @@ MNStylusFlowAddon（JSExtension 实例）
 | `onShortcutEditorClear:` | MNStylusFlowAddon → _panel → ShortcutsPane → EditorHandler.handleClear() |
 | `onShortcutEditorCancel:` | MNStylusFlowAddon → _panel → ShortcutsPane → EditorHandler.handleCancel() |
 | `onScanTools:` | MNStylusFlowAddon → ToolWatcher.watch(force) + _panel.scan() |
-| `onResetAddonConfig:` | MNStylusFlowAddon → ShortcutController.clearAll + restorePersistedBindings |
+| `onResetAddonConfig:` | MNStylusFlowAddon → ShortcutController.clearAllPersistedConfig + restorePersistedBindings |
 | `onToggleDirectToolsTab:` | MNStylusFlowAddon → _panel → ShortcutsPane.toggleDirectToolsTab() |
 | `onDebugToggle:` | MNStylusFlowAddon → _panel.toggleDebugItem(sender.tag) |
 | `onActivateTool:` | MNStylusFlowAddon → _panel.activateTool(sender.tag) |

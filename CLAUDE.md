@@ -51,7 +51,8 @@ src/
 │       ├── ShortcutConstants.js         ← FLAGS / ACTIONS 常量 + toolActionTitle()
 │       ├── ShortcutFormatter.js         ← 输入规范化 + 显示格式化
 │       ├── ShortcutStorage.js           ← NSUserDefaults 持久化
-│       ├── ShortcutBindings.js          ← 绑定注册表 + 冲突检测 + 反向查找（最大文件 213行）
+│       ├── ShortcutRegistry.js          ← 纯内存绑定数据结构（bindings / reverseMap / 冲突检测）
+│       ├── ShortcutBindings.js          ← 绑定编排：校验、持久化时机、tool count 管理、查询格式化
 │       └── ShortcutRuntime.js           ← Debug 运行时状态（触发次数/最近动作等）
 │
 └── ui/
@@ -82,25 +83,26 @@ src/
 4.  controller/shortcut/ShortcutConstants
 5.  controller/shortcut/ShortcutFormatter  ← 依赖 ShortcutConstants
 6.  controller/shortcut/ShortcutStorage    ← 依赖 ShortcutConstants
-7.  controller/shortcut/ShortcutBindings   ← 依赖 Constants+Formatter+Storage
-8.  controller/shortcut/ShortcutRuntime    ← 依赖 Constants+Formatter
-9.  controller/ShortcutController          ← 依赖所有 shortcut/* 子模块
-10. core/ToolWatcher          ← 依赖 CanvasToolController + ShortcutController
-11. core/ActionProcessor      ← 依赖 CanvasToolController + ShortcutController + Strings
-12. ui/NativeSerializer       ← 依赖 CanvasToolController
-13. ui/panel/shortcut/ShortcutRowBuilder   ← 依赖 Strings
-14. ui/panel/shortcut/ShortcutEditorView   ← 依赖 Strings + ShortcutFormatter
-15. ui/panel/shortcut/ShortcutEditorHandler← 依赖 ShortcutController + ShortcutEditorView
-16. ui/panel/ShortcutsPane    ← 依赖上面三个 + ShortcutController + ShortcutConstants
-17. ui/panel/debug/DebugView  ← 依赖 Strings
-18. ui/panel/DebugPane        ← 依赖 DebugView + Strings
-19. ui/ToolPickerView         ← 依赖 Strings
-20. ui/ToolPickerPanel        ← 依赖所有 UI 模块 + Controller + NativeSerializer
-21. feature/composeAddonMethods ← 无业务依赖，纯工具函数
-22. feature/lifecycleFeature  ← 依赖 ShortcutController + ToolWatcher + createToolPickerPanel + Strings
-23. feature/shortcutFeature   ← 依赖 ToolWatcher + ShortcutController + CanvasToolController + ActionProcessor
-24. feature/panelEventFeature ← 依赖 ToolWatcher + ShortcutController
-25. MNStylusFlowAddon         ← 依赖所有 feature/*，唯一调用 JSB.defineClass 处
+7.  controller/shortcut/ShortcutRegistry   ← 无业务依赖，纯内存数据结构
+8.  controller/shortcut/ShortcutBindings   ← 依赖 Constants+Formatter+Storage+Registry
+9.  controller/shortcut/ShortcutRuntime    ← 依赖 Constants+Formatter
+10. controller/ShortcutController          ← 依赖所有 shortcut/* 子模块，纯 wiring facade
+11. core/ToolWatcher          ← 依赖 CanvasToolController + ShortcutController
+12. core/ActionProcessor      ← 依赖 CanvasToolController + ShortcutController + Strings
+13. ui/NativeSerializer       ← 依赖 CanvasToolController
+14. ui/panel/shortcut/ShortcutRowBuilder   ← 依赖 Strings
+15. ui/panel/shortcut/ShortcutEditorView   ← 依赖 Strings + ShortcutFormatter
+16. ui/panel/shortcut/ShortcutEditorHandler← 依赖 ShortcutController + ShortcutEditorView
+17. ui/panel/ShortcutsPane    ← 依赖上面三个 + ShortcutController + ShortcutConstants
+18. ui/panel/debug/DebugView  ← 依赖 Strings
+19. ui/panel/DebugPane        ← 依赖 DebugView + Strings
+20. ui/ToolPickerView         ← 依赖 Strings
+21. ui/ToolPickerPanel        ← 依赖所有 UI 模块 + Controller + NativeSerializer
+22. feature/composeAddonMethods ← 无业务依赖，纯工具函数
+23. feature/lifecycleFeature  ← 依赖 ShortcutController + ToolWatcher + createToolPickerPanel + Strings
+24. feature/shortcutFeature   ← 依赖 ToolWatcher + ShortcutController + CanvasToolController + ActionProcessor
+25. feature/panelEventFeature ← 依赖 ToolWatcher + ShortcutController
+26. MNStylusFlowAddon         ← 依赖所有 feature/*，唯一调用 JSB.defineClass 处
 ```
 
 ---

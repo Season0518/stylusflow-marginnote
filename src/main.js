@@ -1,10 +1,12 @@
 // 加载顺序：依赖在前，使用在后
 JSB.require('i18n/strings');
 JSB.require('core/UIViewTree');
+JSB.require('controller/canvastool/CanvasToolBridge');
 JSB.require('controller/CanvasToolController');
 JSB.require('controller/shortcut/ShortcutConstants');
 JSB.require('controller/shortcut/ShortcutFormatter');
 JSB.require('controller/shortcut/ShortcutStorage');
+JSB.require('controller/shortcut/ShortcutRegistry');
 JSB.require('controller/shortcut/ShortcutBindings');
 JSB.require('controller/shortcut/ShortcutRuntime');
 JSB.require('controller/ShortcutController');

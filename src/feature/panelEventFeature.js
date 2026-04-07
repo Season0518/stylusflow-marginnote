@@ -19,7 +19,6 @@ function panelEventFeature(ctx) {
     },
     onResetAddonConfig: function () {
       if (!ShortcutController.clearAllPersistedConfig()) return;
-      ShortcutController.clearRuntimeBindings();
       ShortcutController.restorePersistedBindings();
       if (ctx.panel) { ctx.panel.refreshShortcutBindings(); ctx.panel.refreshDebug(); }
       var sc = Application.sharedInstance().studyController(self.window);
