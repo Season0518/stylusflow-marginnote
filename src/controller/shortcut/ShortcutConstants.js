@@ -19,14 +19,12 @@ const ShortcutConstants = (() => {
   });
 
   const ACTION_TITLES = {
-    [ACTIONS.PREV_TOOL]: '切换上一个工具',
-    [ACTIONS.NEXT_TOOL]: '切换下一个工具',
+    [ACTIONS.PREV_TOOL]: Strings.actions.prevTool,
+    [ACTIONS.NEXT_TOOL]: Strings.actions.nextTool,
   };
 
-  // 默认工具数量
   const DEFAULT_TOOL_COUNT = 8;
 
-  // 工具动作 ID 生成器
   function getToolActionId(index) {
     return `tool.${index}`;
   }
@@ -35,9 +33,9 @@ const ShortcutConstants = (() => {
     if (ACTION_TITLES[actionId]) return ACTION_TITLES[actionId];
     if (actionId && actionId.startsWith('tool.')) {
       const num = parseInt(actionId.slice(5), 10);
-      if (num >= 1) return `切换到工具 ${num}`;
+      if (num >= 1) return Strings.actions.toolSlot(num);
     }
-    return actionId || '未知动作';
+    return Strings.actions.unknown;
   }
 
   return {

@@ -4,18 +4,16 @@ const ShortcutController = (() => {
 
   function clearBindingWithRecord(actionId) {
     const changed = ShortcutBindings.clearBinding(actionId);
-    if (changed) ShortcutRuntime.markBindingChanged(actionId, '未设置');
+    if (changed) ShortcutRuntime.markBindingChanged(actionId, Strings.editor.notSet);
     return changed;
   }
 
   function applyCustomBinding(actionId, input, flags) {
-    if (!actionId) return { ok: false, reason: '缺少动作标识' };
+    if (!actionId) return { ok: false, reason: Strings.validation.missingAction };
     const normalizedInput = normalizeCustomInput(input);
-    if (!normalizedInput) {
-      return { ok: false, reason: '按键无效，请输入单个字符或 Up/Down/Left/Right/Esc' };
-    }
+    if (!normalizedInput) return { ok: false, reason: Strings.validation.invalidKey };
     const ok = ShortcutBindings.setBinding(actionId, normalizedInput, flags, toolActionTitle(actionId));
-    if (!ok) return { ok: false, reason: '绑定失败' };
+    if (!ok) return { ok: false, reason: Strings.validation.bindingFailed };
     const display = formatShortcutLabel(normalizedInput, normalizeFlags(flags));
     ShortcutRuntime.markBindingChanged(actionId, display);
     return { ok: true, actionId, display };
