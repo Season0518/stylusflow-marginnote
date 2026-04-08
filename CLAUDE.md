@@ -17,8 +17,7 @@ MarginNote 4 插件，让用户用键盘快捷键切换画布工具（上一个/
 | 想用 `import` / `export` | 不可用。用全局变量 + `JSB.require()` |
 | 想用 `fetch` / `setTimeout` / DOM | 不存在。见 AGENTS.md §运行时 |
 | 想加用户可见文字 | 先加到 `src/i18n/strings.js`，再用 `Strings.xxx` |
-| 想写 UI 结构 | 写进对应 `*View.js`，不要放进逻辑文件 |
-| 文件超过 150 行 | 拆分，见下面架构模式 |
+| 想写 UI 结构 | 写进对应 `ui/views/` 或 `ui/components/`，不要放进 containers |
 | 不确定 API 是否存在 | 查 mn-docs MCP 或 https://mn-docs.museday.top |
 
 ---
@@ -55,22 +54,31 @@ src/
 │       ├── ShortcutBindings.js          ← 绑定编排：校验、持久化时机、tool count 管理、查询格式化
 │       └── ShortcutRuntime.js           ← Debug 运行时状态（触发次数/最近动作等）
 │
+├── utils/
+│   └── NativeSerializer.js              ← 原生对象序列化（用于 debug 展示，依赖 CanvasToolController）
+│
 └── ui/
-    ├── NativeSerializer.js              ← 原生对象序列化（用于 debug 展示）
-    ├── toolpicker/
-    │   ├── ToolPickerView.js  ← [VIEW] 面板容器/标签栏 UI 结构 + 布局工具函数
-    │   └── ToolPickerPanel.js ← [LOGIC] 面板协调（挂载/拖拽/扫描/标签切换）
-    └── views/
-        ├── shortcuts/
-        │   ├── ShortcutsView.js         ← [LOGIC] Shortcuts tab 视图协调器
-        │   └── components/
-        │       ├── ShortcutRow.js       ← [VIEW] 绑定行 UI 构建
-        │       ├── ShortcutEditorView.js← [VIEW] 编辑 Modal UI 构建
-        │       └── ShortcutEditor.js    ← [LOGIC] 编辑器状态管理（工厂函数）
-        └── debug/
-            ├── DebugView.js             ← [LOGIC] Debug tab 视图协调器
-            └── components/
-                └── DebugContentView.js  ← [VIEW] Debug 面板 UI 构建
+    ├── components/                      ← 可复用 UI 组件（纯视图，无状态）
+    │   ├── base/
+    │   │   ├── Card.js                  ← 圆角卡片容器 Card.make(frame, opts)
+    │   │   ├── KeyBadge.js              ← 按键徽章 KeyBadge.make(parent, text, frame)
+    │   │   └── KVRow.js                 ← 键值行 KVRow.make(parent, key, val, y, indent, w) → nextY
+    │   ├── shortcuts/
+    │   │   ├── BindingRow.js            ← 绑定行（card + 标题 + badge + 点击层）
+    │   │   ├── SectionHeader.js         ← 可折叠分区标题行
+    │   │   └── EditorModal.js           ← 编辑 Modal UI（overlay + modal card）
+    │   └── debug/
+    │       ├── ToolRow.js               ← 工具展开行 + 激活按钮（展开时渲染 KVRow）
+    │       └── InfoSection.js           ← 快捷键运行时信息区（一组 KVRow）
+    ├── views/                           ← Tab 级 UI 骨架（组合 components，不含状态）
+    │   ├── PanelView.js                 ← 面板外壳（标题栏 + 标签栏 + 布局工具函数）
+    │   ├── ShortcutsPaneView.js         ← Shortcuts tab 容器骨架（pane + scroll）
+    │   └── DebugPaneView.js             ← Debug tab 容器骨架（pane + 按钮 + scroll）
+    └── containers/                      ← 状态协调层（驱动 views/components，消费 controller）
+        ├── PanelContainer.js            ← 面板根级协调（挂载/卸载/拖拽/标签切换）
+        ├── ShortcutsContainer.js        ← Shortcuts tab 状态（绑定列表渲染、折叠）
+        ├── ShortcutEditorContainer.js   ← 编辑器状态（open/dismiss/save/clear）
+        └── DebugContainer.js            ← Debug tab 状态（数据构建、展开状态）
 ```
 
 ---
@@ -92,20 +100,27 @@ src/
 10. controller/ShortcutController          ← 依赖所有 shortcut/* 子模块，纯 wiring facade
 11. core/ToolWatcher          ← 依赖 CanvasToolController + ShortcutController
 12. core/ActionProcessor      ← 依赖 CanvasToolController + ShortcutController + Strings
-13. ui/NativeSerializer                          ← 依赖 CanvasToolController
-14. ui/views/shortcuts/components/ShortcutRow    ← 依赖 Strings
-15. ui/views/shortcuts/components/ShortcutEditorView ← 依赖 Strings + ShortcutFormatter
-16. ui/views/shortcuts/components/ShortcutEditor ← 依赖 ShortcutController + ShortcutEditorView
-17. ui/views/shortcuts/ShortcutsView             ← 依赖上面三个 + ShortcutController + ShortcutConstants
-18. ui/views/debug/components/DebugContentView   ← 依赖 Strings
-19. ui/views/debug/DebugView                     ← 依赖 DebugContentView + Strings
-20. ui/toolpicker/ToolPickerView                 ← 依赖 Strings
-21. ui/toolpicker/ToolPickerPanel                ← 依赖所有 UI 模块 + Controller + NativeSerializer
-22. feature/composeAddonMethods ← 无业务依赖，纯工具函数
-23. feature/lifecycleFeature  ← 依赖 ShortcutController + ToolWatcher + createToolPickerPanel + Strings
-24. feature/shortcutFeature   ← 依赖 ToolWatcher + ShortcutController + CanvasToolController + ActionProcessor
-25. feature/panelEventFeature ← 依赖 ToolWatcher + ShortcutController
-26. MNStylusFlowAddon         ← 依赖所有 feature/*，唯一调用 JSB.defineClass 处
+13. utils/NativeSerializer                       ← 依赖 CanvasToolController
+14. ui/components/base/Card                      ← 无业务依赖
+15. ui/components/base/KeyBadge                  ← 无业务依赖
+16. ui/components/base/KVRow                     ← 无业务依赖
+17. ui/components/shortcuts/BindingRow           ← 依赖 Card + KeyBadge
+18. ui/components/shortcuts/SectionHeader        ← 依赖 Card + Strings
+19. ui/components/shortcuts/EditorModal          ← 依赖 Card + Strings + ShortcutFormatter
+20. ui/components/debug/ToolRow                  ← 依赖 KVRow + Strings
+21. ui/components/debug/InfoSection              ← 依赖 KVRow + Strings
+22. ui/views/PanelView                           ← 依赖 Card + Strings
+23. ui/views/ShortcutsPaneView                   ← 无额外依赖
+24. ui/views/DebugPaneView                       ← 依赖 Strings
+25. ui/containers/ShortcutEditorContainer        ← 依赖 EditorModal + ShortcutController + ShortcutConstants
+26. ui/containers/ShortcutsContainer             ← 依赖 ShortcutsPaneView + BindingRow + SectionHeader + ShortcutEditorContainer
+27. ui/containers/DebugContainer                 ← 依赖 DebugPaneView + ToolRow + InfoSection + NativeSerializer
+28. ui/containers/PanelContainer                 ← 依赖 PanelView + ShortcutsContainer + DebugContainer
+29. feature/composeAddonMethods ← 无业务依赖，纯工具函数
+30. feature/lifecycleFeature  ← 依赖 ShortcutController + ToolWatcher + createPanelContainer + Strings
+31. feature/shortcutFeature   ← 依赖 ToolWatcher + ShortcutController + CanvasToolController + ActionProcessor
+32. feature/panelEventFeature ← 依赖 ToolWatcher + ShortcutController
+33. MNStylusFlowAddon         ← 依赖所有 feature/*，唯一调用 JSB.defineClass 处
 ```
 
 ---
@@ -139,7 +154,7 @@ function createMyHandler(dep1, dep2, onCallback) {
 }
 // 调用方：var handler = createMyHandler(...);
 ```
-目前使用工厂函数的：`createShortcutEditor`、`createShortcutsView`、`createDebugView`、`createToolPickerPanel`、`createMNStylusFlowAddon`。
+目前使用工厂函数的：`createShortcutEditorContainer`、`createShortcutsContainer`、`createDebugContainer`、`createPanelContainer`、`createMNStylusFlowAddon`。
 
 ### 3. Feature 组合（JSExtension 方法分组）
 
@@ -169,14 +184,22 @@ function createMNStylusFlowAddon(mainPath) {
 
 **注意**：feature 方法内可以使用 `self`（JSB 执行时注入），但不能在 feature factory 的函数体执行期（非返回方法内）读取 `self`。
 
-### 4. View / Logic 分离
+### 4. UI 三层结构
 
-UI 层采用 Vue-inspired 的 views/components 结构：
-- **`views/*/XxxView.js`**（Tab 级视图协调器）：持有 tab 内状态，委托视图构建给 components
-- **`views/*/components/XxxView.js`**：只创建 UIView/UILabel/UIButton，返回引用，不含业务逻辑
-- **`views/*/components/XxxEditor.js`**（组件级协调器）：持有子状态，处理事件
-- **`toolpicker/ToolPickerPanel.js`**：App shell，根级浮窗协调器
-- **`toolpicker/ToolPickerView.js`**：App shell 视图结构，纯 UI
+```
+components/   纯视图构建，无状态，可复用
+              base/       原子（Card / KeyBadge / KVRow）
+              shortcuts/  快捷键域分子（BindingRow / SectionHeader / EditorModal）
+              debug/      debug 域分子（ToolRow / InfoSection）
+
+views/        Tab 级 UI 骨架，组合 components，返回 view 引用，不挂事件
+              PanelView / ShortcutsPaneView / DebugPaneView
+
+containers/   状态协调，驱动 views/components 渲染，消费 controller API
+              PanelContainer / ShortcutsContainer / ShortcutEditorContainer / DebugContainer
+```
+
+原则：事件绑定只在 containers 层；views 和 components 只做构建，不知道 addon 的存在。
 
 ### 5. i18n
 
@@ -197,14 +220,16 @@ button.setTitleForState(Strings.editor.save, 0);
 | 你要做什么 | 去改哪里 |
 |-----------|---------|
 | 添加新快捷键动作 | `ShortcutConstants.js`（ACTIONS）+ `strings.js`（名称）+ `ShortcutBindings.js`（逻辑） |
-| 修改快捷键绑定 UI | `ShortcutRow.js`（行）或 `ShortcutEditorView.js`（Modal）|
-| 修改编辑器保存/清除逻辑 | `ShortcutEditor.js` |
-| 修改 Debug 面板显示的字段 | `DebugContentView.js`（UI）+ `DebugView.js`（数据）|
-| 修改面板布局/尺寸 | `toolpicker/ToolPickerView.js`（PANEL_W/PANEL_H 常量在此）|
-| 修改工具切换逻辑 | `ActionProcessor.js` |
-| 修改工具状态轮询频率 | `ToolWatcher.js`（syncIntervalMs） |
-| 修改持久化存储 key | `ShortcutStorage.js`（STORAGE_KEY） |
-| 添加新面板标签页 | `ToolPickerView.js`（Strings.panel.tabs）+ `ToolPickerPanel.js` |
+| 修改快捷键绑定行 UI | `ui/components/shortcuts/BindingRow.js` |
+| 修改编辑 Modal UI | `ui/components/shortcuts/EditorModal.js` |
+| 修改编辑器保存/清除逻辑 | `ui/containers/ShortcutEditorContainer.js` |
+| 修改 Debug 信息字段 UI | `ui/components/debug/InfoSection.js` |
+| 修改 Debug 数据构建逻辑 | `ui/containers/DebugContainer.js`（buildData 函数）|
+| 修改面板布局/尺寸 | `ui/views/PanelView.js`（PANEL_W/PANEL_H 常量在此）|
+| 修改工具切换逻辑 | `core/ActionProcessor.js` |
+| 修改工具状态轮询频率 | `core/ToolWatcher.js`（syncIntervalMs） |
+| 修改持久化存储 key | `controller/shortcut/ShortcutStorage.js`（STORAGE_KEY） |
+| 添加新面板标签页 | `ui/views/PanelView.js`（Strings.panel.tabs）+ `ui/containers/PanelContainer.js` |
 | 添加新 JSExtension 特性块 | 新建 `feature/xxxFeature.js` + 在 `main.js` 加 require + 在 `MNStylusFlowAddon.js` 的数组中追加 |
 | 修改用户可见文字 | `src/i18n/strings.js` |
 

@@ -1,9 +1,8 @@
-// 负责构建面板容器的纯视图结构及布局工具函数
-const ToolPickerView = (function () {
+// 面板外壳：标题栏、关闭按钮、标签栏及布局工具函数（纯视图，不挂事件）
+const PanelView = (function () {
   var PANEL_W = 320;
   var PANEL_H = 460;
 
-  // 布局工具函数
   function getSafeBounds(rootView, bounds) {
     if (bounds && bounds.width > 0 && bounds.height > 0) return bounds;
     if (rootView.superview && rootView.superview.bounds) return rootView.superview.bounds;
@@ -24,19 +23,16 @@ const ToolPickerView = (function () {
     };
   }
 
-  // 构建面板视图，返回 { rootView, titleBar, closeBtn, tabBtns, applyTabStyle, TITLE_H, TAB_H }
-  // 注意：不挂接任何事件，由 ToolPickerPanel 负责绑定
+  // 返回 { rootView, titleBar, closeBtn, tabBtns, applyTabStyle, TITLE_H, TAB_H }
   function build() {
     var TITLE_H = 42;
     var TAB_H = 36;
 
-    var rootView = new UIView({ x: 80, y: 80, width: PANEL_W, height: PANEL_H });
-    rootView.backgroundColor = UIColor.colorWithWhiteAlpha(0.98, 1);
+    var rootView = Card.make(
+      { x: 80, y: 80, width: PANEL_W, height: PANEL_H },
+      { bg: 0.98, radius: 10, border: 0.4 }
+    );
     rootView.userInteractionEnabled = true;
-    rootView.layer.cornerRadius = 10;
-    rootView.layer.masksToBounds = true;
-    rootView.layer.borderWidth = 0.5;
-    rootView.layer.borderColor = UIColor.lightGrayColor().colorWithAlphaComponent(0.4);
 
     var titleBar = new UIView({ x: 0, y: 0, width: PANEL_W, height: TITLE_H });
     titleBar.backgroundColor = UIColor.colorWithWhiteAlpha(0.2, 1);
@@ -85,23 +81,8 @@ const ToolPickerView = (function () {
       }
     }
 
-    return {
-      rootView: rootView,
-      titleBar: titleBar,
-      closeBtn: closeBtn,
-      tabBtns: tabBtns,
-      applyTabStyle: applyTabStyle,
-      TITLE_H: TITLE_H,
-      TAB_H: TAB_H,
-    };
+    return { rootView: rootView, titleBar: titleBar, closeBtn: closeBtn, tabBtns: tabBtns, applyTabStyle: applyTabStyle, TITLE_H: TITLE_H, TAB_H: TAB_H };
   }
 
-  return {
-    PANEL_W: PANEL_W,
-    PANEL_H: PANEL_H,
-    build: build,
-    getSafeBounds: getSafeBounds,
-    clamp: clamp,
-    clampFrame: clampFrame,
-  };
+  return { PANEL_W: PANEL_W, PANEL_H: PANEL_H, build: build, getSafeBounds: getSafeBounds, clamp: clamp, clampFrame: clampFrame };
 })();

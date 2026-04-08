@@ -3,7 +3,7 @@ function lifecycleFeature(ctx, mainPath) {
     sceneWillConnect: function () {
       self.mainPath = mainPath;
       ShortcutController.restorePersistedBindings();
-      ctx.panel = createToolPickerPanel(self);
+      ctx.panel = createPanelContainer(self);
       ToolWatcher.watch(self.window, true, true);
       if (ctx.panel) ctx.panel.refreshShortcutBindings();
       console.log(Strings.addon.initialized);

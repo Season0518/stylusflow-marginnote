@@ -123,28 +123,29 @@ Editor Modal 中 tag 与 flag 的对应：
 
 ```
 MNStylusFlowAddon（JSExtension 实例）
-  └── ToolPickerPanel（App shell 协调器）
-        ├── ToolPickerView.build() → rootView（320×460 悬浮窗）
+  └── PanelContainer（containers/，App shell 协调器）
+        ├── PanelView.build() → rootView（320×460 悬浮窗）   [views/]
         │     ├── titleBar（42px，可拖拽）
         │     └── tabBar（36px，快捷键/调试）
-        ├── ShortcutsView（contentHeight 区域，tab=0）
-        │     ├── UIScrollView
-        │     │     ├── 指定工具切换 折叠行（ShortcutRow）
-        │     │     ├── [展开时] tool.1 ~ tool.N 行（ShortcutRow）
-        │     │     ├── tool.prev 行（ShortcutRow）
-        │     │     └── tool.next 行（ShortcutRow）
-        │     └── [编辑时] ShortcutEditorView overlay
-        │           └── Modal（248px 高）
+        ├── ShortcutsContainer（containers/，tab=0）
+        │     ├── ShortcutsPaneView.build() → pane + scroll   [views/]
+        │     │     ├── SectionHeader（可折叠分区）            [components/shortcuts/]
+        │     │     ├── [展开时] BindingRow × N（tool.1~N）   [components/shortcuts/]
+        │     │     ├── BindingRow（tool.prev）
+        │     │     └── BindingRow（tool.next）
+        │     └── ShortcutEditorContainer（containers/）
+        │           └── EditorModal.build() → overlay         [components/shortcuts/]
         │                 ├── 标题 + 动作名 + 当前绑定显示
         │                 ├── 4个修饰键按钮（tag 3101-3104）
         │                 ├── 按键输入框
         │                 └── 取消/清除/保存 按钮
-        └── DebugView（contentHeight 区域，tab=1，hidden=true）
-              ├── 扫描工具 按钮
-              ├── 重置配置 按钮
-              └── UIScrollView
-                    ├── key-value 信息行（DebugContentView.buildInfoRows）
-                    └── 工具列表行（DebugContentView.buildToolRows，可展开）
+        └── DebugContainer（containers/，tab=1，hidden=true）
+              ├── DebugPaneView.build() → pane + 按钮 + scroll  [views/]
+              │     ├── 扫描工具 按钮
+              │     └── 重置配置 按钮
+              └── scroll 内容（由 DebugContainer.render() 驱动）
+                    ├── InfoSection.build()（信息 KVRow 组）    [components/debug/]
+                    └── ToolRow × N（可展开，展开时渲染 KVRow） [components/debug/]
 ```
 
 ---
@@ -159,14 +160,14 @@ MNStylusFlowAddon（JSExtension 实例）
 | `onPanelClose:` | MNStylusFlowAddon → _panel.unmount() |
 | `onPanelPan:` | MNStylusFlowAddon → _panel.handlePan() |
 | `onTabSwitch:` | MNStylusFlowAddon → _panel.switchTab(sender.tag) |
-| `onShortcutBindingTap:` | MNStylusFlowAddon → _panel → ShortcutsView → ShortcutEditor.open() |
-| `onShortcutEditorModifierTap:` | MNStylusFlowAddon → _panel → ShortcutsView → ShortcutEditor.handleModifierTap() |
-| `onShortcutEditorSave:` | MNStylusFlowAddon → _panel → ShortcutsView → ShortcutEditor.handleSave() |
-| `onShortcutEditorClear:` | MNStylusFlowAddon → _panel → ShortcutsView → ShortcutEditor.handleClear() |
-| `onShortcutEditorCancel:` | MNStylusFlowAddon → _panel → ShortcutsView → ShortcutEditor.handleCancel() |
+| `onShortcutBindingTap:` | MNStylusFlowAddon → _panel → ShortcutsContainer → ShortcutEditorContainer.open() |
+| `onShortcutEditorModifierTap:` | MNStylusFlowAddon → _panel → ShortcutsContainer → ShortcutEditorContainer.handleModifierTap() |
+| `onShortcutEditorSave:` | MNStylusFlowAddon → _panel → ShortcutsContainer → ShortcutEditorContainer.handleSave() |
+| `onShortcutEditorClear:` | MNStylusFlowAddon → _panel → ShortcutsContainer → ShortcutEditorContainer.handleClear() |
+| `onShortcutEditorCancel:` | MNStylusFlowAddon → _panel → ShortcutsContainer → ShortcutEditorContainer.handleCancel() |
 | `onScanTools:` | MNStylusFlowAddon → ToolWatcher.watch(force) + _panel.scan() |
 | `onResetAddonConfig:` | MNStylusFlowAddon → ShortcutController.clearAllPersistedConfig + restorePersistedBindings |
-| `onToggleDirectToolsTab:` | MNStylusFlowAddon → _panel → ShortcutsPane.toggleDirectToolsTab() |
+| `onToggleDirectToolsTab:` | MNStylusFlowAddon → _panel → ShortcutsContainer.toggleDirectToolsTab() |
 | `onDebugToggle:` | MNStylusFlowAddon → _panel.toggleDebugItem(sender.tag) |
 | `onActivateTool:` | MNStylusFlowAddon → _panel.activateTool(sender.tag) |
 
@@ -193,7 +194,6 @@ function createXxx(config) {
 
 1. 确认依赖的模块已在 `main.js` 中更早加载
 2. 在 `main.js` 正确位置添加 `JSB.require('path/to/NewModule')`
-3. 文件保持 ≤ 150 行
-4. 用户可见文字放入 `i18n/strings.js`
-5. UI 结构放入 `*View.js`，业务逻辑放入对应逻辑文件
+3. 用户可见文字放入 `i18n/strings.js`
+4. UI 结构放入 `ui/components/` 或 `ui/views/`，事件绑定和状态放入 `ui/containers/`
 
