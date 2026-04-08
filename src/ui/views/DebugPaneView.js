@@ -1,5 +1,5 @@
-// Debug tab 容器骨架：pane + 扫描/重置按钮 + scroll（纯视图，不挂事件）
-// DebugPaneView.build(config) → { pane, scroll, scanBtn, resetBtn, panUpBtn, panDownBtn, panLeftBtn, panRightBtn }
+// Debug tab 容器骨架：pane + 扫描/重置按钮 + 事件拦截按钮 + scroll（纯视图，不挂事件）
+// DebugPaneView.build(config) → { pane, scroll, scanBtn, resetBtn, panUpBtn, ..., interceptBtn }
 // config: { panelWidth, originY, contentHeight }
 const DebugPaneView = (function () {
   function styleButton(button, title, bgColor) {
@@ -57,7 +57,12 @@ const DebugPaneView = (function () {
     styleButton(panDownBtn, Strings.debug.panDown, UIColor.colorWithWhiteAlpha(0.42, 1));
     pane.addSubview(panDownBtn);
 
-    var scrollTop = panTop + 114;
+    var interceptBtn = UIButton.buttonWithType(0);
+    interceptBtn.frame = { x: 10, y: panTop + 112, width: panelWidth - 20, height: 32 };
+    styleButton(interceptBtn, Strings.debug.interceptStart, UIColor.colorWithRedGreenBlueAlpha(0.2, 0.6, 0.9, 1));
+    pane.addSubview(interceptBtn);
+
+    var scrollTop = panTop + 152;
     var scroll = new UIScrollView({ x: 0, y: scrollTop, width: panelWidth, height: contentHeight - scrollTop });
     scroll.alwaysBounceVertical = true;
     pane.addSubview(scroll);
@@ -71,6 +76,7 @@ const DebugPaneView = (function () {
       panDownBtn: panDownBtn,
       panLeftBtn: panLeftBtn,
       panRightBtn: panRightBtn,
+      interceptBtn: interceptBtn,
     };
   }
 

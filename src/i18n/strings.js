@@ -38,6 +38,8 @@ const Strings = Object.freeze({
     panDown: '下移',
     panLeft: '左移',
     panRight: '右移',
+    interceptStart: '事件拦截',
+    interceptStop: '停止拦截',
     activate: '激活',
     none: '无',
     noTrigger: '未触发',

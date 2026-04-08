@@ -13,6 +13,7 @@ JSB.require('controller/ShortcutController');
 JSB.require('core/ToolWatcher');
 JSB.require('core/ActionProcessor');
 JSB.require('controller/DocumentScrollController');
+JSB.require('controller/EventInterceptor');
 // utils
 JSB.require('utils/NativeSerializer');
 // ui/components/base

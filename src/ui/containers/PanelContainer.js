@@ -110,6 +110,7 @@ function createPanelContainer(addon) {
     refreshDebug: function () { debugCtrl.refresh(collectTools(), picker); },
     refreshShortcutBindings: function () { shortcutsCtrl.updateBindings(ShortcutController.getBindingLabelMap()); },
     toggleDebugItem: function (idx) { debugCtrl.toggleItem(idx); },
+    toggleEventIntercept: function () { debugCtrl.toggleIntercept(); },
     toggleDirectToolsTab: function () { shortcutsCtrl.toggleDirectToolsTab(); },
     handleShortcutBindingTap: function (tag) { return shortcutsCtrl.handleBindingTap(tag); },
     handleShortcutEditorModifierTap: function (tag) { return shortcutsCtrl.handleEditorModifierTap(tag); },
