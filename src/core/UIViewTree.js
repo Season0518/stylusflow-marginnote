@@ -68,19 +68,31 @@ const UIViewTree = (function () {
     for (var i = 0; i < subs.length; i++) subs[i].removeFromSuperview();
   }
 
-  // BFS 查找第一个匹配类名的节点
-  function findNodeByClass(rootNode, targetClass) {
-    if (!rootNode || !targetClass) return null;
+  // BFS 按类名搜索视图树（firstOnly=true 返回第一个，否则返回全部）
+  function bfsByClass(rootNode, targetClass, firstOnly) {
+    if (!rootNode || !targetClass) return firstOnly ? null : [];
+    var results = [];
     var queue = [rootNode];
     var head = 0;
     while (head < queue.length) {
       var v = queue[head++];
       if (!v) continue;
-      if (getClassName(v) === targetClass) return v;
+      if (getClassName(v) === targetClass) {
+        if (firstOnly) return v;
+        results.push(v);
+      }
       var subs = getSubviews(v);
       for (var i = 0; i < subs.length; i++) queue.push(subs[i]);
     }
-    return null;
+    return firstOnly ? null : results;
+  }
+
+  function findNodeByClass(rootNode, targetClass) {
+    return bfsByClass(rootNode, targetClass, true);
+  }
+
+  function findAllNodesByClass(rootNode, targetClass) {
+    return bfsByClass(rootNode, targetClass, false);
   }
 
   // DFS 收集所有可见的 ActionControl 节点
@@ -112,6 +124,7 @@ const UIViewTree = (function () {
     triggerTouch: triggerTouch,
     clearSubviews: clearSubviews,
     findNodeByClass: findNodeByClass,
+    findAllNodesByClass: findAllNodesByClass,
     collectVisibleActionControls: collectVisibleActionControls,
   };
 })();
