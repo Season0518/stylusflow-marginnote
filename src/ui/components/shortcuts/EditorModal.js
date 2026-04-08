@@ -1,14 +1,12 @@
-// 负责构建快捷键编辑 Modal 的纯视图结构，不含业务逻辑
-const ShortcutEditorView = (function () {
-
-  // 构建编辑 Modal，返回 { overlay, keyField, modifierButtons, cancelBtn, clearBtn, saveBtn }（不挂事件）
-  // config: { panelWidth, contentHeight, actionTitle, currentBinding, initialFlags }
+// 分子：快捷键编辑 Modal UI（overlay + modal card + modifier 按钮 + 操作按钮）
+// EditorModal.build(config) → { overlay, keyField, modifierButtons, cancelBtn, clearBtn, saveBtn }
+// config: { panelWidth, contentHeight, actionTitle, currentBinding }
+const EditorModal = (function () {
   function build(config) {
     var panelWidth = config.panelWidth;
     var contentHeight = config.contentHeight;
     var actionTitle = config.actionTitle;
     var currentBinding = config.currentBinding;
-    var initialFlags = config.initialFlags;
 
     var overlay = new UIView({ x: 0, y: 0, width: panelWidth, height: contentHeight });
     overlay.backgroundColor = UIColor.colorWithWhiteAlpha(0.1, 0.45);
@@ -17,12 +15,11 @@ const ShortcutEditorView = (function () {
     var modalH = 248;
     var modalX = 14;
     var modalY = Math.max(16, (contentHeight - modalH) / 2);
-    var modal = new UIView({ x: modalX, y: modalY, width: modalW, height: modalH });
-    modal.backgroundColor = UIColor.colorWithWhiteAlpha(0.985, 1);
-    modal.layer.cornerRadius = 10;
-    modal.layer.masksToBounds = true;
-    modal.layer.borderWidth = 0.5;
-    modal.layer.borderColor = UIColor.lightGrayColor().colorWithAlphaComponent(0.35);
+
+    var modal = Card.make(
+      { x: modalX, y: modalY, width: modalW, height: modalH },
+      { bg: 0.985, radius: 10, border: 0.35 }
+    );
 
     var titleLbl = new UILabel({ x: 12, y: 10, width: modalW - 24, height: 20 });
     titleLbl.text = Strings.editor.title;
@@ -55,10 +52,10 @@ const ShortcutEditorView = (function () {
     var modifierButtons = {};
     var btnW = (modalW - 36) / 2;
     var modDefs = [
-      { tag: 3101, text: 'Command', x: 12, y: 88 },
-      { tag: 3102, text: 'Option',  x: 20 + btnW, y: 88 },
-      { tag: 3103, text: 'Control', x: 12, y: 120 },
-      { tag: 3104, text: 'Shift',   x: 20 + btnW, y: 120 },
+      { tag: 3101, text: 'Command', x: 12,          y: 88  },
+      { tag: 3102, text: 'Option',  x: 20 + btnW,   y: 88  },
+      { tag: 3103, text: 'Control', x: 12,          y: 120 },
+      { tag: 3104, text: 'Shift',   x: 20 + btnW,   y: 120 },
     ];
     for (var i = 0; i < modDefs.length; i++) {
       var def = modDefs[i];
@@ -118,14 +115,7 @@ const ShortcutEditorView = (function () {
     modal.addSubview(saveBtn);
 
     overlay.addSubview(modal);
-    return {
-      overlay: overlay,
-      keyField: keyField,
-      modifierButtons: modifierButtons,
-      cancelBtn: cancelBtn,
-      clearBtn: clearBtn,
-      saveBtn: saveBtn,
-    };
+    return { overlay: overlay, keyField: keyField, modifierButtons: modifierButtons, cancelBtn: cancelBtn, clearBtn: clearBtn, saveBtn: saveBtn };
   }
 
   return { build: build };

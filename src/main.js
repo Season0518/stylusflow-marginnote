@@ -12,15 +12,29 @@ JSB.require('controller/shortcut/ShortcutRuntime');
 JSB.require('controller/ShortcutController');
 JSB.require('core/ToolWatcher');
 JSB.require('core/ActionProcessor');
-JSB.require('ui/NativeSerializer');
-JSB.require('ui/views/shortcuts/components/ShortcutRow');
-JSB.require('ui/views/shortcuts/components/ShortcutEditorView');
-JSB.require('ui/views/shortcuts/components/ShortcutEditor');
-JSB.require('ui/views/shortcuts/ShortcutsView');
-JSB.require('ui/views/debug/components/DebugContentView');
-JSB.require('ui/views/debug/DebugView');
-JSB.require('ui/toolpicker/ToolPickerView');
-JSB.require('ui/toolpicker/ToolPickerPanel');
+// utils
+JSB.require('utils/NativeSerializer');
+// ui/components/base
+JSB.require('ui/components/base/Card');
+JSB.require('ui/components/base/KeyBadge');
+JSB.require('ui/components/base/KVRow');
+// ui/components/shortcuts
+JSB.require('ui/components/shortcuts/BindingRow');
+JSB.require('ui/components/shortcuts/SectionHeader');
+JSB.require('ui/components/shortcuts/EditorModal');
+// ui/components/debug
+JSB.require('ui/components/debug/ToolRow');
+JSB.require('ui/components/debug/InfoSection');
+// ui/views
+JSB.require('ui/views/PanelView');
+JSB.require('ui/views/ShortcutsPaneView');
+JSB.require('ui/views/DebugPaneView');
+// ui/containers
+JSB.require('ui/containers/ShortcutEditorContainer');
+JSB.require('ui/containers/ShortcutsContainer');
+JSB.require('ui/containers/DebugContainer');
+JSB.require('ui/containers/PanelContainer');
+// feature
 JSB.require('feature/composeAddonMethods');
 JSB.require('feature/lifecycleFeature');
 JSB.require('feature/shortcutFeature');
