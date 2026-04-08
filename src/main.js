@@ -12,6 +12,8 @@ JSB.require('controller/shortcut/ShortcutRuntime');
 JSB.require('controller/ShortcutController');
 JSB.require('core/ToolWatcher');
 JSB.require('core/ActionProcessor');
+JSB.require('controller/DocumentScrollController');
+JSB.require('controller/EventInterceptor');
 // utils
 JSB.require('utils/NativeSerializer');
 // ui/components/base
@@ -39,6 +41,7 @@ JSB.require('feature/composeAddonMethods');
 JSB.require('feature/lifecycleFeature');
 JSB.require('feature/shortcutFeature');
 JSB.require('feature/panelEventFeature');
+JSB.require('feature/documentPanDebugFeature');
 JSB.require('MNStylusFlowAddon');
 
 JSB.newAddon = function (mainPath) {

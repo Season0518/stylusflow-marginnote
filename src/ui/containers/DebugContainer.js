@@ -10,6 +10,11 @@ function createDebugContainer(config) {
 
   built.scanBtn.addTargetActionForControlEvents(addon, 'onScanTools:', 1 << 6);
   built.resetBtn.addTargetActionForControlEvents(addon, 'onResetAddonConfig:', 1 << 6);
+  built.panUpBtn.addTargetActionForControlEvents(addon, 'onTestPanUp:', 1 << 6);
+  built.panDownBtn.addTargetActionForControlEvents(addon, 'onTestPanDown:', 1 << 6);
+  built.panLeftBtn.addTargetActionForControlEvents(addon, 'onTestPanLeft:', 1 << 6);
+  built.panRightBtn.addTargetActionForControlEvents(addon, 'onTestPanRight:', 1 << 6);
+  built.interceptBtn.addTargetActionForControlEvents(addon, 'onToggleEventIntercept:', 1 << 6);
 
   var expandedIndices = {};
   var debugData = null;
@@ -59,10 +64,24 @@ function createDebugContainer(config) {
     scroll.contentSize = { width: panelWidth, height: y + 8 };
   }
 
+  function toggleIntercept() {
+    if (EventInterceptor.isActive()) {
+      EventInterceptor.stop();
+      built.interceptBtn.setTitleForState(Strings.debug.interceptStart, 0);
+      built.interceptBtn.backgroundColor = UIColor.colorWithRedGreenBlueAlpha(0.2, 0.6, 0.9, 1);
+    } else {
+      if (EventInterceptor.start(addon)) {
+        built.interceptBtn.setTitleForState(Strings.debug.interceptStop, 0);
+        built.interceptBtn.backgroundColor = UIColor.colorWithRedGreenBlueAlpha(0.9, 0.3, 0.2, 1);
+      }
+    }
+  }
+
   return {
     view: pane,
     onShow: render,
     refresh: function (tools, picker) { debugData = buildData(tools, picker); render(); },
     toggleItem: function (idx) { expandedIndices[idx] = !expandedIndices[idx]; render(); },
+    toggleIntercept: toggleIntercept,
   };
 }

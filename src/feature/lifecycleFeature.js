@@ -23,6 +23,7 @@ function lifecycleFeature(ctx, mainPath) {
           if (r.bindingListChanged) ctx.panel.refreshShortcutBindings();
           if (r.bindingListChanged || r.signatureChanged) ctx.panel.refreshDebug();
         }
+        if (EventInterceptor.isActive()) EventInterceptor.refresh();
       }
       if (!ctx.panel || !ctx.panel.isMounted()) return;
       if (controller === sc && sc && sc.view) ctx.panel.relayoutWithinBounds(sc.view.bounds);
