@@ -10,6 +10,10 @@ function createDebugContainer(config) {
 
   built.scanBtn.addTargetActionForControlEvents(addon, 'onScanTools:', 1 << 6);
   built.resetBtn.addTargetActionForControlEvents(addon, 'onResetAddonConfig:', 1 << 6);
+  built.panUpBtn.addTargetActionForControlEvents(addon, 'onTestPanUp:', 1 << 6);
+  built.panDownBtn.addTargetActionForControlEvents(addon, 'onTestPanDown:', 1 << 6);
+  built.panLeftBtn.addTargetActionForControlEvents(addon, 'onTestPanLeft:', 1 << 6);
+  built.panRightBtn.addTargetActionForControlEvents(addon, 'onTestPanRight:', 1 << 6);
 
   var expandedIndices = {};
   var debugData = null;
