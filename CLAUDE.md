@@ -33,7 +33,8 @@ src/
 │   ├── composeAddonMethods.js ← 将多个 feature 方法片段合并成单一方法对象
 │   ├── lifecycleFeature.js    ← sceneWillConnect / Disconnect / controllerWillLayoutSubviews
 │   ├── shortcutFeature.js     ← queryAddonCommandStatus / additionalShortcutKeys / processShortcut / togglePanel
-│   └── panelEventFeature.js   ← 所有 on* 面板事件委托
+│   ├── panelEventFeature.js   ← 所有 on* 面板事件委托
+│   └── documentPanDebugFeature.js ← Debug 用：测试文档上下左右平移（onTestPanUp/Down/Left/Right）
 │
 ├── i18n/
 │   └── strings.js           ← 所有用户可见文字，通过 Strings.xxx 引用
@@ -44,7 +45,11 @@ src/
 │   └── ActionProcessor.js   ← 快捷键动作解析与工具激活，暴露 ActionProcessor.process()
 │
 ├── controller/
-│   ├── CanvasToolController.js          ← 定位 CanvasToolPicker，激活工具（依赖 UIViewTree）
+│   ├── canvastool/
+│   │   └── CanvasToolBridge.js          ← iOS 平台层：定位 CanvasToolPicker、工具排序、触发点击
+│   ├── CanvasToolController.js          ← 业务门面：find / detectAllTools / activate（依赖 CanvasToolBridge）
+│   ├── DocumentScrollController.js      ← 文档滚动：定位最佳 ScrollView 并执行平移（panStudyView）
+│   ├── EventInterceptor.js              ← PDF 事件拦截：附加 PanGestureRecognizer 到 MbUIBookView，转发给 DocumentScrollController
 │   ├── ShortcutController.js            ← 快捷键公共 API 门面（统一入口）
 │   └── shortcut/
 │       ├── ShortcutConstants.js         ← FLAGS / ACTIONS 常量 + toolActionTitle()
@@ -90,37 +95,41 @@ src/
 ```
 1.  i18n/strings              ← 最先，所有模块都可能用到
 2.  core/UIViewTree           ← 工具函数，CanvasToolController 依赖
-3.  controller/CanvasToolController
-4.  controller/shortcut/ShortcutConstants
-5.  controller/shortcut/ShortcutFormatter  ← 依赖 ShortcutConstants
-6.  controller/shortcut/ShortcutStorage    ← 依赖 ShortcutConstants
-7.  controller/shortcut/ShortcutRegistry   ← 无业务依赖，纯内存数据结构
-8.  controller/shortcut/ShortcutBindings   ← 依赖 Constants+Formatter+Storage+Registry
-9.  controller/shortcut/ShortcutRuntime    ← 依赖 Constants+Formatter
-10. controller/ShortcutController          ← 依赖所有 shortcut/* 子模块，纯 wiring facade
-11. core/ToolWatcher          ← 依赖 CanvasToolController + ShortcutController
-12. core/ActionProcessor      ← 依赖 CanvasToolController + ShortcutController + Strings
-13. utils/NativeSerializer                       ← 依赖 CanvasToolController
-14. ui/components/base/Card                      ← 无业务依赖
-15. ui/components/base/KeyBadge                  ← 无业务依赖
-16. ui/components/base/KVRow                     ← 无业务依赖
-17. ui/components/shortcuts/BindingRow           ← 依赖 Card + KeyBadge
-18. ui/components/shortcuts/SectionHeader        ← 依赖 Card + Strings
-19. ui/components/shortcuts/EditorModal          ← 依赖 Card + Strings + ShortcutFormatter
-20. ui/components/debug/ToolRow                  ← 依赖 KVRow + Strings
-21. ui/components/debug/InfoSection              ← 依赖 KVRow + Strings
-22. ui/views/PanelView                           ← 依赖 Card + Strings
-23. ui/views/ShortcutsPaneView                   ← 无额外依赖
-24. ui/views/DebugPaneView                       ← 依赖 Strings
-25. ui/containers/ShortcutEditorContainer        ← 依赖 EditorModal + ShortcutController + ShortcutConstants
-26. ui/containers/ShortcutsContainer             ← 依赖 ShortcutsPaneView + BindingRow + SectionHeader + ShortcutEditorContainer
-27. ui/containers/DebugContainer                 ← 依赖 DebugPaneView + ToolRow + InfoSection + NativeSerializer
-28. ui/containers/PanelContainer                 ← 依赖 PanelView + ShortcutsContainer + DebugContainer
-29. feature/composeAddonMethods ← 无业务依赖，纯工具函数
-30. feature/lifecycleFeature  ← 依赖 ShortcutController + ToolWatcher + createPanelContainer + Strings
-31. feature/shortcutFeature   ← 依赖 ToolWatcher + ShortcutController + CanvasToolController + ActionProcessor
-32. feature/panelEventFeature ← 依赖 ToolWatcher + ShortcutController
-33. MNStylusFlowAddon         ← 依赖所有 feature/*，唯一调用 JSB.defineClass 处
+3.  controller/canvastool/CanvasToolBridge ← iOS 平台层，CanvasToolController 依赖
+4.  controller/CanvasToolController
+5.  controller/shortcut/ShortcutConstants
+6.  controller/shortcut/ShortcutFormatter  ← 依赖 ShortcutConstants
+7.  controller/shortcut/ShortcutStorage    ← 依赖 ShortcutConstants
+8.  controller/shortcut/ShortcutRegistry   ← 无业务依赖，纯内存数据结构
+9.  controller/shortcut/ShortcutBindings   ← 依赖 Constants+Formatter+Storage+Registry
+10. controller/shortcut/ShortcutRuntime    ← 依赖 Constants+Formatter
+11. controller/ShortcutController          ← 依赖所有 shortcut/* 子模块，纯 wiring facade
+12. core/ToolWatcher          ← 依赖 CanvasToolController + ShortcutController
+13. core/ActionProcessor      ← 依赖 CanvasToolController + ShortcutController + Strings
+14. controller/DocumentScrollController    ← 依赖 UIViewTree，无其他业务依赖
+15. controller/EventInterceptor            ← 依赖 UIViewTree + DocumentScrollController
+16. utils/NativeSerializer                       ← 依赖 CanvasToolController
+17. ui/components/base/Card                      ← 无业务依赖
+18. ui/components/base/KeyBadge                  ← 无业务依赖
+19. ui/components/base/KVRow                     ← 无业务依赖
+20. ui/components/shortcuts/BindingRow           ← 依赖 Card + KeyBadge
+21. ui/components/shortcuts/SectionHeader        ← 依赖 Card + Strings
+22. ui/components/shortcuts/EditorModal          ← 依赖 Card + Strings + ShortcutFormatter
+23. ui/components/debug/ToolRow                  ← 依赖 KVRow + Strings
+24. ui/components/debug/InfoSection              ← 依赖 KVRow + Strings
+25. ui/views/PanelView                           ← 依赖 Card + Strings
+26. ui/views/ShortcutsPaneView                   ← 无额外依赖
+27. ui/views/DebugPaneView                       ← 依赖 Strings
+28. ui/containers/ShortcutEditorContainer        ← 依赖 EditorModal + ShortcutController + ShortcutConstants
+29. ui/containers/ShortcutsContainer             ← 依赖 ShortcutsPaneView + BindingRow + SectionHeader + ShortcutEditorContainer
+30. ui/containers/DebugContainer                 ← 依赖 DebugPaneView + ToolRow + InfoSection + NativeSerializer
+31. ui/containers/PanelContainer                 ← 依赖 PanelView + ShortcutsContainer + DebugContainer
+32. feature/composeAddonMethods ← 无业务依赖，纯工具函数
+33. feature/lifecycleFeature  ← 依赖 ShortcutController + ToolWatcher + createPanelContainer + Strings
+34. feature/shortcutFeature   ← 依赖 ToolWatcher + ShortcutController + CanvasToolController + ActionProcessor
+35. feature/panelEventFeature ← 依赖 ToolWatcher + ShortcutController
+36. feature/documentPanDebugFeature ← 依赖 DocumentScrollController
+37. MNStylusFlowAddon         ← 依赖所有 feature/*，唯一调用 JSB.defineClass 处
 ```
 
 ---
@@ -250,11 +259,25 @@ CanvasToolController.find(rootWindow) → pickerView | null
 CanvasToolController.detectAllTools(picker) → [{slotIndex, view}]
 CanvasToolController.activate(toolView) → bool
 
+DocumentScrollController.panStudyView(studyController, dx, dy) → bool
+DocumentScrollController.findScrollTarget(studyController) → scrollView | null
+DocumentScrollController.pan(scrollView, dx, dy) → bool
+DocumentScrollController.debugProbe(studyController) → {visited, matches, bestName}
+DocumentScrollController.DEFAULT_PAN_STEP → 40
+
+EventInterceptor.start(addon) → bool  (attach PanGestureRecognizer to all MbUIBookView)
+EventInterceptor.stop() → void
+EventInterceptor.refresh() → void  (detect and attach to newly added MbUIBookView)
+EventInterceptor.handlePan(recognizer) → void
+EventInterceptor.isActive() → bool
+
 UIViewTree.findNodeByClass(root, className) → view | null
+UIViewTree.findAllNodesByClass(root, className) → [view]
 UIViewTree.collectVisibleActionControls(root, maxDepth) → [view]
 UIViewTree.clearSubviews(view) → void
 UIViewTree.isVisible(view) → bool
 UIViewTree.getClassName(obj) → string
+UIViewTree.getAbsoluteX(view, container) → number
 
 ToolWatcher.watch(windowRef, force, allowRefresh) → {changed, bindingListChanged, signatureChanged}
 ToolWatcher.reset()
