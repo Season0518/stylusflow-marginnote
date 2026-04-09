@@ -60,6 +60,32 @@ MNStylusFlowAddon.onShortcutEditorSave()
 
 ---
 
+## 数据流：PDF 拖拽平移（手势拦截）
+
+```
+EventInterceptor.start(addon)
+  → UIViewTree.findAllNodesByClass(readerView, 'MbUIBookView') 找到全部书页视图
+  → 每个视图附加 UIPanGestureRecognizer（selector: onInterceptPan:）
+  → 其他已有手势识别器 requireGestureRecognizerToFail(rec) 让拦截器优先
+
+用户在 PDF 页面拖动
+  ↓
+MNStylusFlowAddon.onInterceptPan:(recognizer)（panelEventFeature 委托）
+  → EventInterceptor.handlePan(recognizer)
+  → recognizer.translationInView(ref) 获取 dx/dy，立即重置为 {0,0}
+  → DocumentScrollController.panStudyView(sc, dx, dy)
+      → findScrollTarget() BFS 搜索候选 ScrollView，按 BookScrollView 优先 + 最大滚动范围排序
+      → pan(target, dx, dy) clamp + setContentOffset 执行平移
+
+场景切换时
+  ↓
+ToolWatcher.watch() → EventInterceptor.refresh()
+  → 检查已附加视图是否仍有 superview
+  → 对新出现的 MbUIBookView 追加 PanGestureRecognizer
+```
+
+---
+
 ## 状态管理
 
 ### 运行时状态（内存，重启后丢失）
@@ -170,6 +196,11 @@ MNStylusFlowAddon（JSExtension 实例）
 | `onToggleDirectToolsTab:` | MNStylusFlowAddon → _panel → ShortcutsContainer.toggleDirectToolsTab() |
 | `onDebugToggle:` | MNStylusFlowAddon → _panel.toggleDebugItem(sender.tag) |
 | `onActivateTool:` | MNStylusFlowAddon → _panel.activateTool(sender.tag) |
+| `onInterceptPan:` | MNStylusFlowAddon → EventInterceptor.handlePan(recognizer) |
+| `onTestPanUp:` | MNStylusFlowAddon → documentPanDebugFeature → DocumentScrollController.panStudyView(sc, 0, -40) |
+| `onTestPanDown:` | MNStylusFlowAddon → documentPanDebugFeature → DocumentScrollController.panStudyView(sc, 0, +40) |
+| `onTestPanLeft:` | MNStylusFlowAddon → documentPanDebugFeature → DocumentScrollController.panStudyView(sc, -40, 0) |
+| `onTestPanRight:` | MNStylusFlowAddon → documentPanDebugFeature → DocumentScrollController.panStudyView(sc, +40, 0) |
 
 ---
 

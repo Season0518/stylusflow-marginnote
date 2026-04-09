@@ -1,4 +1,4 @@
-// Debug tab 容器骨架：pane + 扫描/重置按钮 + 事件拦截按钮 + scroll（纯视图，不挂事件）
+// Debug tab 容器骨架：pane + 按钮组 + scroll（纯视图，不挂事件）
 // DebugPaneView.build(config) → { pane, scroll, scanBtn, resetBtn, panUpBtn, ..., interceptBtn }
 // config: { panelWidth, originY, contentHeight }
 const DebugPaneView = (function () {

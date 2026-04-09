@@ -3,7 +3,9 @@ function lifecycleFeature(ctx, mainPath) {
     sceneWillConnect: function () {
       self.mainPath = mainPath;
       ShortcutController.restorePersistedBindings();
+      PanGateController.init();
       ctx.panel = createPanelContainer(self);
+      EventInterceptor.start(self);
       ToolWatcher.watch(self.window, true, true);
       if (ctx.panel) ctx.panel.refreshShortcutBindings();
       console.log(Strings.addon.initialized);
@@ -12,6 +14,8 @@ function lifecycleFeature(ctx, mainPath) {
       if (ctx.panel) ctx.panel.unmount();
       ctx.panel = null;
       ToolWatcher.reset();
+      EventInterceptor.stop();
+      PanGateController.forceExpire();
       console.log(Strings.addon.disconnected);
     },
     controllerWillLayoutSubviews: function (controller) {
@@ -23,7 +27,7 @@ function lifecycleFeature(ctx, mainPath) {
           if (r.bindingListChanged) ctx.panel.refreshShortcutBindings();
           if (r.bindingListChanged || r.signatureChanged) ctx.panel.refreshDebug();
         }
-        if (EventInterceptor.isActive()) EventInterceptor.refresh();
+        EventInterceptor.ensure(self);
       }
       if (!ctx.panel || !ctx.panel.isMounted()) return;
       if (controller === sc && sc && sc.view) ctx.panel.relayoutWithinBounds(sc.view.bounds);

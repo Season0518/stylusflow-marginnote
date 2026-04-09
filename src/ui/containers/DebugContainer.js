@@ -19,9 +19,28 @@ function createDebugContainer(config) {
   var expandedIndices = {};
   var debugData = null;
 
+  function syncInterceptButton() {
+    if (EventInterceptor.isActive()) {
+      built.interceptBtn.setTitleForState(Strings.debug.interceptStop, 0);
+      built.interceptBtn.backgroundColor = UIColor.colorWithRedGreenBlueAlpha(0.9, 0.3, 0.2, 1);
+    } else {
+      built.interceptBtn.setTitleForState(Strings.debug.interceptStart, 0);
+      built.interceptBtn.backgroundColor = UIColor.colorWithRedGreenBlueAlpha(0.2, 0.6, 0.9, 1);
+    }
+  }
+
+  function _applyLiveFields(obj) {
+    var panGate = PanGateController.getDebugState();
+    obj.interceptStatus = EventInterceptor.isActive() ? Strings.debug.enabled : Strings.debug.disabled;
+    obj.panGateStatus = panGate.isActive ? Strings.debug.enabled : Strings.debug.disabled;
+    obj.panTriggerKey = panGate.triggerLabel;
+    obj.panStopKey = panGate.stopLabel;
+    obj.panExpiredMs = String(panGate.expiredMs) + 'ms';
+  }
+
   function buildData(tools, picker) {
     var toolList = tools || [];
-    return {
+    var data = {
       isVisible: CanvasToolController.isVisible(picker),
       toolCount: toolList.length,
       shortcuts: ShortcutController.getDebugState(),
@@ -34,10 +53,14 @@ function createDebugContainer(config) {
         };
       }),
     };
+    _applyLiveFields(data);
+    return data;
   }
 
   function render() {
+    if (debugData) _applyLiveFields(debugData);
     UIViewTree.clearSubviews(scroll);
+    syncInterceptButton();
 
     if (!debugData) {
       var lbl = new UILabel({ x: 0, y: 20, width: panelWidth, height: 30 });
@@ -65,16 +88,14 @@ function createDebugContainer(config) {
   }
 
   function toggleIntercept() {
+    console.log('[StylusFlow][Debug] toggleIntercept active=' + String(EventInterceptor.isActive()));
     if (EventInterceptor.isActive()) {
       EventInterceptor.stop();
-      built.interceptBtn.setTitleForState(Strings.debug.interceptStart, 0);
-      built.interceptBtn.backgroundColor = UIColor.colorWithRedGreenBlueAlpha(0.2, 0.6, 0.9, 1);
     } else {
-      if (EventInterceptor.start(addon)) {
-        built.interceptBtn.setTitleForState(Strings.debug.interceptStop, 0);
-        built.interceptBtn.backgroundColor = UIColor.colorWithRedGreenBlueAlpha(0.9, 0.3, 0.2, 1);
-      }
+      var started = EventInterceptor.start(addon);
+      console.log('[StylusFlow][Debug] EventInterceptor.start -> ' + String(started));
     }
+    render();
   }
 
   return {

@@ -1,4 +1,18 @@
 function shortcutFeature(ctx) {
+  function dedupeCommands(commands) {
+    var out = [];
+    var seen = {};
+    for (var i = 0; i < commands.length; i++) {
+      var item = commands[i];
+      if (!item) continue;
+      var key = String(item.input) + '__' + String(item.flags || 0);
+      if (seen[key]) continue;
+      seen[key] = true;
+      out.push(item);
+    }
+    return out;
+  }
+
   return {
     queryAddonCommandStatus: function () {
       return { image: 'icon.png', object: self, selector: 'togglePanel:', checked: !!(ctx.panel && ctx.panel.isMounted()) };
@@ -9,13 +23,28 @@ function shortcutFeature(ctx) {
         if (r.bindingListChanged) ctx.panel.refreshShortcutBindings();
         if (r.bindingListChanged || r.signatureChanged) ctx.panel.refreshDebug();
       }
-      return ShortcutController.getAdditionalShortcutKeys();
+      return dedupeCommands(
+        PanGateController.getAdditionalShortcutKeys().concat(ShortcutController.getAdditionalShortcutKeys())
+      );
     },
     queryShortcutKeyWithKeyFlags: function (command, keyFlags) {
+      var panQuery = PanGateController.queryKey(command, keyFlags);
+      if (panQuery) return panQuery;
       return ShortcutController.queryShortcut(command, keyFlags);
     },
     processShortcutKeyWithKeyFlags: function (command, keyFlags) {
       ToolWatcher.watch(self.window, false, true);
+      var panAction = PanGateController.processKey(command, keyFlags);
+      if (panAction) {
+        EventInterceptor.syncGate();
+        if (ctx.panel && ctx.panel.isMounted()) ctx.panel.refreshDebug();
+        if (panAction === 'capture') {
+          var sc0 = Application.sharedInstance().studyController(self.window);
+          if (sc0) sc0.refreshAddonCommands();
+        }
+        return true;
+      }
+
       var actionId = ShortcutController.resolveAction(command, keyFlags);
       if (!actionId) return false;
 
