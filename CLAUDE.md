@@ -49,7 +49,13 @@ src/
 │   │   └── CanvasToolBridge.js          ← iOS 平台层：定位 CanvasToolPicker、工具排序、触发点击
 │   ├── CanvasToolController.js          ← 业务门面：find / detectAllTools / activate（依赖 CanvasToolBridge）
 │   ├── DocumentScrollController.js      ← 文档滚动：定位最佳 ScrollView 并执行平移（panStudyView）
-│   ├── EventInterceptor.js              ← PDF 事件拦截：附加 PanGestureRecognizer 到 MbUIBookView，转发给 DocumentScrollController
+│   ├── pangate/
+│   │   ├── PanGateConstants.js          ← 常量（DEFAULT_*, MIN/MAX_EXPIRED_MS, STEP, STORAGE_KEY, QUERY_RESULT）
+│   │   ├── PanGateStorage.js            ← NSUserDefaults 读写（纯 save/load，无业务逻辑）
+│   │   ├── PanGateBindings.js           ← 配置状态 + 操作 + matchesTrigger/matchesStop（热路径匹配方法）
+│   │   ├── PanGesturePool.js            ← MbUIBookView 识别器生命周期（工厂函数 createPanGesturePool）
+│   │   └── EventInterceptor.js          ← 拦截生命周期 + 门控同步 + 平移转发（依赖 PanGesturePool）
+│   ├── PanGateController.js             ← 门控心跳 + 捕获模式 + 热路径 queryKey/processKey + 公共 API facade
 │   ├── ShortcutController.js            ← 快捷键公共 API 门面（统一入口）
 │   └── shortcut/
 │       ├── ShortcutConstants.js         ← FLAGS / ACTIONS 常量 + toolActionTitle()
@@ -106,30 +112,35 @@ src/
 11. controller/ShortcutController          ← 依赖所有 shortcut/* 子模块，纯 wiring facade
 12. core/ToolWatcher          ← 依赖 CanvasToolController + ShortcutController
 13. core/ActionProcessor      ← 依赖 CanvasToolController + ShortcutController + Strings
-14. controller/DocumentScrollController    ← 依赖 UIViewTree，无其他业务依赖
-15. controller/EventInterceptor            ← 依赖 UIViewTree + DocumentScrollController
-16. utils/NativeSerializer                       ← 依赖 CanvasToolController
-17. ui/components/base/Card                      ← 无业务依赖
-18. ui/components/base/KeyBadge                  ← 无业务依赖
-19. ui/components/base/KVRow                     ← 无业务依赖
-20. ui/components/shortcuts/BindingRow           ← 依赖 Card + KeyBadge
-21. ui/components/shortcuts/SectionHeader        ← 依赖 Card + Strings
-22. ui/components/shortcuts/EditorModal          ← 依赖 Card + Strings + ShortcutFormatter
-23. ui/components/debug/ToolRow                  ← 依赖 KVRow + Strings
-24. ui/components/debug/InfoSection              ← 依赖 KVRow + Strings
-25. ui/views/PanelView                           ← 依赖 Card + Strings
-26. ui/views/ShortcutsPaneView                   ← 无额外依赖
-27. ui/views/DebugPaneView                       ← 依赖 Strings
-28. ui/containers/ShortcutEditorContainer        ← 依赖 EditorModal + ShortcutController + ShortcutConstants
-29. ui/containers/ShortcutsContainer             ← 依赖 ShortcutsPaneView + BindingRow + SectionHeader + ShortcutEditorContainer
-30. ui/containers/DebugContainer                 ← 依赖 DebugPaneView + ToolRow + InfoSection + NativeSerializer
-31. ui/containers/PanelContainer                 ← 依赖 PanelView + ShortcutsContainer + DebugContainer
-32. feature/composeAddonMethods ← 无业务依赖，纯工具函数
-33. feature/lifecycleFeature  ← 依赖 ShortcutController + ToolWatcher + createPanelContainer + Strings
-34. feature/shortcutFeature   ← 依赖 ToolWatcher + ShortcutController + CanvasToolController + ActionProcessor
-35. feature/panelEventFeature ← 依赖 ToolWatcher + ShortcutController
-36. feature/documentPanDebugFeature ← 依赖 DocumentScrollController
-37. MNStylusFlowAddon         ← 依赖所有 feature/*，唯一调用 JSB.defineClass 处
+14. controller/DocumentScrollController        ← 依赖 UIViewTree，无其他业务依赖
+15. controller/pangate/PanGateConstants       ← 依赖 ShortcutConstants（FLAGS.OPTION）
+16. controller/pangate/PanGateStorage         ← 依赖 PanGateConstants
+17. controller/pangate/PanGateBindings        ← 依赖 PanGateConstants + PanGateStorage + ShortcutFormatter + Strings
+18. controller/PanGateController              ← 依赖 pangate/* + ShortcutFormatter + Strings
+19. controller/pangate/PanGesturePool         ← 依赖 UIViewTree
+20. controller/pangate/EventInterceptor       ← 依赖 PanGesturePool + PanGateController + DocumentScrollController
+21. utils/NativeSerializer                       ← 依赖 CanvasToolController
+22. ui/components/base/Card                      ← 无业务依赖
+23. ui/components/base/KeyBadge                  ← 无业务依赖
+24. ui/components/base/KVRow                     ← 无业务依赖
+25. ui/components/shortcuts/BindingRow           ← 依赖 Card + KeyBadge
+26. ui/components/shortcuts/SectionHeader        ← 依赖 Card + Strings
+27. ui/components/shortcuts/EditorModal          ← 依赖 Card + Strings + ShortcutFormatter
+28. ui/components/debug/ToolRow                  ← 依赖 KVRow + Strings
+29. ui/components/debug/InfoSection              ← 依赖 KVRow + Strings
+30. ui/views/PanelView                           ← 依赖 Card + Strings
+31. ui/views/ShortcutsPaneView                   ← 无额外依赖
+32. ui/views/DebugPaneView                       ← 依赖 Strings
+33. ui/containers/ShortcutEditorContainer        ← 依赖 EditorModal + ShortcutController + ShortcutConstants + PanGateController
+34. ui/containers/ShortcutsContainer             ← 依赖 ShortcutsPaneView + BindingRow + SectionHeader + ShortcutEditorContainer + PanGateController
+35. ui/containers/DebugContainer                 ← 依赖 DebugPaneView + ToolRow + InfoSection + NativeSerializer + PanGateController
+36. ui/containers/PanelContainer                 ← 依赖 PanelView + ShortcutsContainer + DebugContainer
+37. feature/composeAddonMethods ← 无业务依赖，纯工具函数
+38. feature/lifecycleFeature  ← 依赖 ShortcutController + ToolWatcher + createPanelContainer + PanGateController + EventInterceptor + Strings
+39. feature/shortcutFeature   ← 依赖 ToolWatcher + ShortcutController + CanvasToolController + ActionProcessor + PanGateController
+40. feature/panelEventFeature ← 依赖 ToolWatcher + ShortcutController + PanGateController + EventInterceptor
+41. feature/documentPanDebugFeature ← 依赖 DocumentScrollController
+42. MNStylusFlowAddon         ← 依赖所有 feature/*，唯一调用 JSB.defineClass 处
 ```
 
 ---
@@ -265,9 +276,31 @@ DocumentScrollController.pan(scrollView, dx, dy) → bool
 DocumentScrollController.debugProbe(studyController) → {visited, matches, bestName}
 DocumentScrollController.DEFAULT_PAN_STEP → 40
 
+PanGateBindings.matchesTrigger(ni, nf) → bool  (预归一化热路径匹配)
+PanGateBindings.matchesStop(ni, nf) → bool
+PanGateBindings.getTriggerBinding() → {input, flags, display}
+PanGateBindings.getStopBinding() → {input, flags, display} | null
+PanGateBindings.getExpiredMs() → number
+PanGateBindings.applyTriggerBinding(input, flags) → {ok, reason?, display?}
+PanGateBindings.applyStopBinding(input, flags) → {ok, reason?, display?}
+PanGateBindings.clearStop() / resetTriggerBinding() / resetExpiredMs() / setExpiredMs(v)
+PanGateBindings.finishCapture(input, flags, target) → void  (由 PanGateController 内部调用)
+PanGateBindings.init() / resetConfig()
+
+PanGateController.isActive() → bool  (心跳门控：热路径，被 EventInterceptor 频繁调用)
+PanGateController.heartbeat() / forceExpire()
+PanGateController.queryKey(input, flags) → QUERY_RESULT | null
+PanGateController.processKey(input, flags) → 'trigger' | 'stop' | 'capture' | null
+PanGateController.startCapture(target) / cancelCapture() / isCaptureMode()
+PanGateController.getDebugState() → {isActive, expiredMs, triggerLabel, stopLabel, captureTarget}
+PanGateController.init() / resetConfig()
+(其余配置 API 委托给 PanGateBindings，调用方无需区分)
+
 EventInterceptor.start(addon) → bool  (attach PanGestureRecognizer to all MbUIBookView)
+EventInterceptor.ensure(addon) → bool  (start 或 refresh，忽略 desiredActive=false 状态)
 EventInterceptor.stop() → void
 EventInterceptor.refresh() → void  (detect and attach to newly added MbUIBookView)
+EventInterceptor.syncGate() → void  (根据 PanGateController.isActive() 同步 recognizer enabled)
 EventInterceptor.handlePan(recognizer) → void
 EventInterceptor.isActive() → bool
 

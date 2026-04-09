@@ -2,6 +2,7 @@ const ShortcutFormatter = (() => {
   const { FLAGS } = ShortcutConstants;
 
   const KEY_ALIAS_MAP = Object.freeze({
+    space: ' ',
     up: 'UIKeyInputUpArrow',
     down: 'UIKeyInputDownArrow',
     left: 'UIKeyInputLeftArrow',
@@ -21,6 +22,7 @@ const ShortcutFormatter = (() => {
 
   // 特殊按键显示映射
   const KEY_DISPLAY_MAP = Object.freeze({
+    ' ': 'Space',
     UIKeyInputUpArrow: '↑',
     UIKeyInputDownArrow: '↓',
     UIKeyInputLeftArrow: '←',
@@ -34,6 +36,7 @@ const ShortcutFormatter = (() => {
   }
 
   function normalizeCustomInput(input) {
+    if (input === ' ') return ' ';
     const raw = String(input || '').trim();
     if (!raw) return null;
     if (raw.length === 1) return raw.toLowerCase();

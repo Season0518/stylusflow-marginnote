@@ -3,6 +3,9 @@ function createShortcutsContainer(config) {
   var panelWidth = config.panelWidth;
   var addon = config.addon;
   var ACTIONS = ShortcutController.ACTIONS;
+  var PAN_TRIGGER_ACTION = 'pan.trigger';
+  var PAN_STOP_ACTION = 'pan.stop';
+  var PAN_EXPIRED_ACTION = 'pan.expired';
 
   var built = ShortcutsPaneView.build(config);
   var pane = built.pane;
@@ -12,6 +15,11 @@ function createShortcutsContainer(config) {
     { actionId: ACTIONS.PREV_TOOL, title: Strings.actions.prevTool },
     { actionId: ACTIONS.NEXT_TOOL, title: Strings.actions.nextTool },
   ];
+  var panItems = [
+    { actionId: PAN_TRIGGER_ACTION, title: Strings.editor.panTriggerAction },
+    { actionId: PAN_STOP_ACTION, title: Strings.editor.panStopAction },
+    { actionId: PAN_EXPIRED_ACTION, title: Strings.editor.panExpiredAction },
+  ];
 
   var targetToolsExpanded = false;
   var bindingLabelMap = ShortcutController.getBindingLabelMap();
@@ -19,6 +27,17 @@ function createShortcutsContainer(config) {
   var nextTag = 100;
 
   function getBindingLabel(actionId) {
+    if (actionId === PAN_TRIGGER_ACTION) {
+      var trigger = PanGateController.getTriggerBinding();
+      return trigger ? trigger.display : Strings.editor.notSet;
+    }
+    if (actionId === PAN_STOP_ACTION) {
+      var stop = PanGateController.getStopBinding();
+      return stop ? stop.display : Strings.editor.notSet;
+    }
+    if (actionId === PAN_EXPIRED_ACTION) {
+      return String(PanGateController.getExpiredMs()) + 'ms';
+    }
     return bindingLabelMap[actionId] || Strings.editor.notSet;
   }
 
@@ -60,6 +79,23 @@ function createShortcutsContainer(config) {
       y = cr.nextY;
     }
 
+    y += 4;
+    var panTitle = new UILabel({ x: 18, y: y, width: panelWidth - 36, height: 16 });
+    panTitle.text = Strings.panel.panSection;
+    panTitle.font = UIFont.boldSystemFontOfSize(11);
+    panTitle.textColor = UIColor.grayColor();
+    scroll.addSubview(panTitle);
+    y += 22;
+
+    for (var k = 0; k < panItems.length; k++) {
+      var pr = BindingRow.make(scroll, panItems[k], { panelWidth: panelWidth, compact: false, indent: 12 }, getBindingLabel, y);
+      pr.tapBtn.tag = nextTag;
+      pr.tapBtn.addTargetActionForControlEvents(addon, 'onShortcutBindingTap:', 1 << 6);
+      actionIdByTag[nextTag] = panItems[k].actionId;
+      nextTag++;
+      y = pr.nextY;
+    }
+
     scroll.contentSize = { width: panelWidth, height: y + 6 };
   }
 
@@ -84,6 +120,10 @@ function createShortcutsContainer(config) {
   }
 
   var editor = createShortcutEditorContainer(pane, panelWidth, config.contentHeight, addon, onBindingsUpdated);
+  var panTapHandlers = {};
+  panTapHandlers[PAN_TRIGGER_ACTION] = function () { editor.openPanTrigger(); };
+  panTapHandlers[PAN_STOP_ACTION]    = function () { editor.openPanStop(); };
+  panTapHandlers[PAN_EXPIRED_ACTION] = function () { editor.openPanExpired(); };
 
   render();
 
@@ -95,6 +135,8 @@ function createShortcutsContainer(config) {
     handleBindingTap: function (tag) {
       var actionId = actionIdByTag[tag];
       if (!actionId) return false;
+      var panHandler = panTapHandlers[actionId];
+      if (panHandler) { panHandler(); return true; }
       editor.open(actionId);
       return true;
     },

@@ -13,7 +13,12 @@ JSB.require('controller/ShortcutController');
 JSB.require('core/ToolWatcher');
 JSB.require('core/ActionProcessor');
 JSB.require('controller/DocumentScrollController');
-JSB.require('controller/EventInterceptor');
+JSB.require('controller/pangate/PanGateConstants');
+JSB.require('controller/pangate/PanGateStorage');
+JSB.require('controller/pangate/PanGateBindings');
+JSB.require('controller/PanGateController');
+JSB.require('controller/pangate/PanGesturePool');
+JSB.require('controller/pangate/EventInterceptor');
 // utils
 JSB.require('utils/NativeSerializer');
 // ui/components/base
