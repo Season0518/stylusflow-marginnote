@@ -32,6 +32,19 @@ const ActionProcessor = (function () {
     if (slotIndex < 0 || slotIndex >= tools.length) {
       return { handled: false, reason: Strings.errors.noMatch, bindingListChanged: bindingListChanged };
     }
+    var ACTIONS = ShortcutController.ACTIONS;
+    var isAbsolute = actionId !== ACTIONS.PREV_TOOL && actionId !== ACTIONS.NEXT_TOOL && actionId.startsWith('tool.');
+    if (isAbsolute) {
+      var activeSlot = CanvasToolController.detectActiveSlot(picker);
+      if (activeSlot >= 0) ctx.lastToolSlot = activeSlot;
+      if (slotIndex === ctx.lastToolSlot && typeof ctx.prevToolSlot === 'number' && ctx.prevToolSlot >= 0 && ctx.prevToolSlot < tools.length) {
+        var swapTarget = ctx.prevToolSlot;
+        ctx.prevToolSlot = ctx.lastToolSlot;
+        slotIndex = swapTarget;
+      } else if (typeof ctx.lastToolSlot === 'number' && ctx.lastToolSlot >= 0) {
+        ctx.prevToolSlot = ctx.lastToolSlot;
+      }
+    }
     var target = tools[slotIndex];
     if (!target || !target.view) {
       return { handled: false, reason: Strings.errors.toolUnavailable, bindingListChanged: bindingListChanged };

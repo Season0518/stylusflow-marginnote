@@ -20,5 +20,13 @@ const CanvasToolBridge = (function () {
     return UIViewTree.triggerTouch(toolView);
   }
 
-  return { find: find, detectAllTools: detectAllTools, activate: activate };
+  function detectActiveSlot(picker) {
+    var tools = detectAllTools(picker);
+    for (var i = 0; i < tools.length; i++) {
+      try { if (tools[i].view.selected) return i; } catch (e) {}
+    }
+    return -1;
+  }
+
+  return { find: find, detectAllTools: detectAllTools, activate: activate, detectActiveSlot: detectActiveSlot };
 })();
