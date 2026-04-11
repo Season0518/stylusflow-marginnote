@@ -6,7 +6,7 @@
 
 ## 项目一句话
 
-MarginNote 4 插件，让用户用键盘快捷键切换画布工具（上一个/下一个/指定工具），并提供可拖拽的设置面板。
+MarginNote 4 插件，让用户用键盘快捷键切换画布工具（上一个/下一个/指定工具），并提供 PDF 平移门控、脑图框选桥接与可拖拽设置面板。
 
 ---
 
@@ -18,6 +18,7 @@ MarginNote 4 插件，让用户用键盘快捷键切换画布工具（上一个/
 | 想用 `fetch` / `setTimeout` / DOM | 不存在。见 AGENTS.md §运行时 |
 | 想加用户可见文字 | 先加到 `src/i18n/strings.js`，再用 `Strings.xxx` |
 | 想写 UI 结构 | 写进对应 `ui/views/` 或 `ui/components/`，不要放进 containers |
+| 想加调试日志 | 上线代码不保留 `console.*`；临时排查后必须删干净 |
 | 不确定 API 是否存在 | 查 mn-docs MCP 或 https://mn-docs.museday.top |
 
 ---
@@ -34,7 +35,7 @@ src/
 │   ├── lifecycleFeature.js    ← sceneWillConnect / Disconnect / controllerWillLayoutSubviews
 │   ├── shortcutFeature.js     ← queryAddonCommandStatus / additionalShortcutKeys / processShortcut / togglePanel
 │   ├── panelEventFeature.js   ← 所有 on* 面板事件委托
-│   └── documentPanDebugFeature.js ← Debug 用：测试文档上下左右平移（onTestPanUp/Down/Left/Right）
+│   └── documentPanDebugFeature.js ← Debug 用：测试文档平移 + 脑图框选标定/模式入口
 │
 ├── i18n/
 │   └── strings.js           ← 所有用户可见文字，通过 Strings.xxx 引用
@@ -49,6 +50,13 @@ src/
 │   │   └── CanvasToolBridge.js          ← iOS 平台层：定位 CanvasToolPicker、工具排序、触发点击
 │   ├── CanvasToolController.js          ← 业务门面：find / detectAllTools / activate（依赖 CanvasToolBridge）
 │   ├── DocumentScrollController.js      ← 文档滚动：定位最佳 ScrollView 并执行平移（panStudyView）
+│   ├── mindmap/
+│   │   ├── MindMapShared.js             ← 脑图控制器共享基础：安全取值 + mindmapView/studyRootView 入口解析
+│   │   ├── MindMapBoxGestureCollector.js ← 脑图框选手势收集：候选根视图/识别器元信息
+│   │   ├── MindMapBoxCalibration.js     ← 脑图框选标定：识别器采样与候选排序
+│   │   ├── MindMapBoxBridge.js          ← 脑图框选桥接：注入 UIPan 并转发到 MindMapCanvas.handlePanGesture:
+│   │   └── MindMapBoxSelectRuntime.js   ← 脑图框选编排：组合标定与桥接状态
+│   ├── MindMapBoxSelectController.js    ← 脑图框选 facade（依赖 mindmap/MindMapBoxSelectRuntime）
 │   ├── pangate/
 │   │   ├── PanGateConstants.js          ← 常量（DEFAULT_*, MIN/MAX_EXPIRED_MS, STEP, STORAGE_KEY, QUERY_RESULT）
 │   │   ├── PanGateStorage.js            ← NSUserDefaults 读写（纯 save/load，无业务逻辑）
@@ -89,7 +97,7 @@ src/
         ├── PanelContainer.js            ← 面板根级协调（挂载/卸载/拖拽/标签切换）
         ├── ShortcutsContainer.js        ← Shortcuts tab 状态（绑定列表渲染、折叠）
         ├── ShortcutEditorContainer.js   ← 编辑器状态（open/dismiss/save/clear）
-        └── DebugContainer.js            ← Debug tab 状态（数据构建、展开状态）
+        └── DebugContainer.js            ← Debug tab 状态（数据构建、按钮同步、展开状态）
 ```
 
 ---
@@ -112,35 +120,41 @@ src/
 11. controller/ShortcutController          ← 依赖所有 shortcut/* 子模块，纯 wiring facade
 12. core/ToolWatcher          ← 依赖 CanvasToolController + ShortcutController
 13. core/ActionProcessor      ← 依赖 CanvasToolController + ShortcutController + Strings
-14. controller/DocumentScrollController        ← 依赖 UIViewTree，无其他业务依赖
-15. controller/pangate/PanGateConstants       ← 依赖 ShortcutConstants（FLAGS.OPTION）
-16. controller/pangate/PanGateStorage         ← 依赖 PanGateConstants
-17. controller/pangate/PanGateBindings        ← 依赖 PanGateConstants + PanGateStorage + ShortcutFormatter + Strings
-18. controller/PanGateController              ← 依赖 pangate/* + ShortcutFormatter + Strings
-19. controller/pangate/PanGesturePool         ← 依赖 UIViewTree
-20. controller/pangate/EventInterceptor       ← 依赖 PanGesturePool + PanGateController + DocumentScrollController
-21. utils/NativeSerializer                       ← 依赖 CanvasToolController
-22. ui/components/base/Card                      ← 无业务依赖
-23. ui/components/base/KeyBadge                  ← 无业务依赖
-24. ui/components/base/KVRow                     ← 无业务依赖
-25. ui/components/shortcuts/BindingRow           ← 依赖 Card + KeyBadge
-26. ui/components/shortcuts/SectionHeader        ← 依赖 Card + Strings
-27. ui/components/shortcuts/EditorModal          ← 依赖 Card + Strings + ShortcutFormatter
-28. ui/components/debug/ToolRow                  ← 依赖 KVRow + Strings
-29. ui/components/debug/InfoSection              ← 依赖 KVRow + Strings
-30. ui/views/PanelView                           ← 依赖 Card + Strings
-31. ui/views/ShortcutsPaneView                   ← 无额外依赖
-32. ui/views/DebugPaneView                       ← 依赖 Strings
-33. ui/containers/ShortcutEditorContainer        ← 依赖 EditorModal + ShortcutController + ShortcutConstants + PanGateController
-34. ui/containers/ShortcutsContainer             ← 依赖 ShortcutsPaneView + BindingRow + SectionHeader + ShortcutEditorContainer + PanGateController
-35. ui/containers/DebugContainer                 ← 依赖 DebugPaneView + ToolRow + InfoSection + NativeSerializer + PanGateController
-36. ui/containers/PanelContainer                 ← 依赖 PanelView + ShortcutsContainer + DebugContainer
-37. feature/composeAddonMethods ← 无业务依赖，纯工具函数
-38. feature/lifecycleFeature  ← 依赖 ShortcutController + ToolWatcher + createPanelContainer + PanGateController + EventInterceptor + Strings
-39. feature/shortcutFeature   ← 依赖 ToolWatcher + ShortcutController + CanvasToolController + ActionProcessor + PanGateController
-40. feature/panelEventFeature ← 依赖 ToolWatcher + ShortcutController + PanGateController + EventInterceptor
-41. feature/documentPanDebugFeature ← 依赖 DocumentScrollController
-42. MNStylusFlowAddon         ← 依赖所有 feature/*，唯一调用 JSB.defineClass 处
+14. controller/DocumentScrollController         ← 依赖 UIViewTree，无其他业务依赖
+15. controller/mindmap/MindMapShared            ← 依赖 UIViewTree
+16. controller/mindmap/MindMapBoxGestureCollector ← 依赖 MindMapShared + UIViewTree
+17. controller/mindmap/MindMapBoxCalibration    ← 依赖 MindMapShared + MindMapBoxGestureCollector
+18. controller/mindmap/MindMapBoxBridge         ← 依赖 MindMapBoxGestureCollector
+19. controller/mindmap/MindMapBoxSelectRuntime  ← 依赖 MindMapBoxCalibration + MindMapBoxBridge
+20. controller/MindMapBoxSelectController       ← 依赖 MindMapBoxSelectRuntime，纯 facade
+21. controller/pangate/PanGateConstants         ← 依赖 ShortcutConstants（FLAGS.OPTION）
+22. controller/pangate/PanGateStorage           ← 依赖 PanGateConstants
+23. controller/pangate/PanGateBindings          ← 依赖 PanGateConstants + PanGateStorage + ShortcutFormatter + Strings
+24. controller/PanGateController                ← 依赖 pangate/* + ShortcutFormatter + Strings
+25. controller/pangate/PanGesturePool           ← 依赖 UIViewTree
+26. controller/pangate/EventInterceptor         ← 依赖 PanGesturePool + PanGateController + DocumentScrollController
+27. utils/NativeSerializer                      ← 依赖 CanvasToolController
+28. ui/components/base/Card                     ← 无业务依赖
+29. ui/components/base/KeyBadge                 ← 无业务依赖
+30. ui/components/base/KVRow                    ← 无业务依赖
+31. ui/components/shortcuts/BindingRow          ← 依赖 Card + KeyBadge
+32. ui/components/shortcuts/SectionHeader       ← 依赖 Card + Strings
+33. ui/components/shortcuts/EditorModal         ← 依赖 Card + Strings + ShortcutFormatter
+34. ui/components/debug/ToolRow                 ← 依赖 KVRow + Strings
+35. ui/components/debug/InfoSection             ← 依赖 KVRow + Strings
+36. ui/views/PanelView                          ← 依赖 Card + Strings
+37. ui/views/ShortcutsPaneView                  ← 无额外依赖
+38. ui/views/DebugPaneView                      ← 依赖 Strings
+39. ui/containers/ShortcutEditorContainer       ← 依赖 EditorModal + ShortcutController + ShortcutConstants + PanGateController
+40. ui/containers/ShortcutsContainer            ← 依赖 ShortcutsPaneView + BindingRow + SectionHeader + ShortcutEditorContainer + PanGateController
+41. ui/containers/DebugContainer                ← 依赖 DebugPaneView + ToolRow + InfoSection + NativeSerializer + PanGateController + MindMapBoxSelectController
+42. ui/containers/PanelContainer                ← 依赖 PanelView + ShortcutsContainer + DebugContainer
+43. feature/composeAddonMethods ← 无业务依赖，纯工具函数
+44. feature/lifecycleFeature  ← 依赖 ShortcutController + ToolWatcher + createPanelContainer + PanGateController + EventInterceptor
+45. feature/shortcutFeature   ← 依赖 ToolWatcher + ShortcutController + CanvasToolController + ActionProcessor + PanGateController
+46. feature/panelEventFeature ← 依赖 ToolWatcher + ShortcutController + PanGateController + EventInterceptor
+47. feature/documentPanDebugFeature ← 依赖 DocumentScrollController + MindMapBoxSelectController
+48. MNStylusFlowAddon         ← 依赖所有 feature/*，唯一调用 JSB.defineClass 处
 ```
 
 ---
@@ -174,7 +188,7 @@ function createMyHandler(dep1, dep2, onCallback) {
 }
 // 调用方：var handler = createMyHandler(...);
 ```
-目前使用工厂函数的：`createShortcutEditorContainer`、`createShortcutsContainer`、`createDebugContainer`、`createPanelContainer`、`createMNStylusFlowAddon`。
+目前使用工厂函数的：`createShortcutEditorContainer`、`createShortcutsContainer`、`createDebugContainer`、`createPanelContainer`、`createMNStylusFlowAddon`、`createPanGesturePool`、`createMindMapBoxCalibration`、`createMindMapBoxBridge`、`createMindMapBoxSelectRuntime`。
 
 ### 3. Feature 组合（JSExtension 方法分组）
 
@@ -231,7 +245,11 @@ button.setTitleForState('保存', 0);
 button.setTitleForState(Strings.editor.save, 0);
 ```
 
-所有字符串统一在 `src/i18n/strings.js` 的 `Strings` 对象中，按 `actions / editor / validation / panel / debug / errors / addon` 分组。
+所有字符串统一在 `src/i18n/strings.js` 的 `Strings` 对象中，按 `actions / editor / validation / panel / debug / errors` 分组。
+
+### 6. 日志与上线状态
+
+上线代码保持静默，不保留 `console.log` / `console.warn` / `console.error` 等输出。需要临时排查 MarginNote 原生对象时可以短期使用 `console.log`（不要用 `JSB.log`），但交付前必须删除对应日志和只为日志服务的辅助函数/字符串。
 
 ---
 
@@ -273,8 +291,14 @@ CanvasToolController.activate(toolView) → bool
 DocumentScrollController.panStudyView(studyController, dx, dy) → bool
 DocumentScrollController.findScrollTarget(studyController) → scrollView | null
 DocumentScrollController.pan(scrollView, dx, dy) → bool
-DocumentScrollController.debugProbe(studyController) → {visited, matches, bestName}
+DocumentScrollController.debugProbe(studyController) → {visited, matches, bestName}  (静默返回，不输出日志)
 DocumentScrollController.DEFAULT_PAN_STEP → 40
+
+MindMapShared.getMindMapTargets(studyController) → {studyRootView, mindMapView}
+MindMapBoxSelectController.startCalibration(studyController) → bool
+MindMapBoxSelectController.toggleBoxSelectMode(studyController) → bool
+MindMapBoxSelectController.stopBoxSelectMode() → void
+MindMapBoxSelectController.getDebugState() → {calibrated, calibrationActive, modeActive, recognizerName}
 
 PanGateBindings.matchesTrigger(ni, nf) → bool  (预归一化热路径匹配)
 PanGateBindings.matchesStop(ni, nf) → bool
