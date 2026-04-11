@@ -32,7 +32,7 @@ src/
 │
 ├── feature/
 │   ├── composeAddonMethods.js ← 将多个 feature 方法片段合并成单一方法对象
-│   ├── lifecycleFeature.js    ← sceneWillConnect / Disconnect / controllerWillLayoutSubviews
+│   ├── lifecycleFeature.js    ← sceneWillConnect（强制选最后一个工具 + 自动激活框选）/ Disconnect / controllerWillLayoutSubviews（持续 ensureBoxSelect）
 │   ├── shortcutFeature.js     ← queryAddonCommandStatus / additionalShortcutKeys / processShortcut / togglePanel
 │   ├── panelEventFeature.js   ← 所有 on* 面板事件委托
 │   └── documentPanDebugFeature.js ← Debug 用：测试文档平移 + 脑图框选标定/模式入口
@@ -150,7 +150,7 @@ src/
 41. ui/containers/DebugContainer                ← 依赖 DebugPaneView + ToolRow + InfoSection + NativeSerializer + PanGateController + MindMapBoxSelectController
 42. ui/containers/PanelContainer                ← 依赖 PanelView + ShortcutsContainer + DebugContainer
 43. feature/composeAddonMethods ← 无业务依赖，纯工具函数
-44. feature/lifecycleFeature  ← 依赖 ShortcutController + ToolWatcher + createPanelContainer + PanGateController + EventInterceptor
+44. feature/lifecycleFeature  ← 依赖 ShortcutController + ToolWatcher + createPanelContainer + PanGateController + EventInterceptor + MindMapBoxSelectController + CanvasToolController
 45. feature/shortcutFeature   ← 依赖 ToolWatcher + ShortcutController + CanvasToolController + ActionProcessor + PanGateController
 46. feature/panelEventFeature ← 依赖 ToolWatcher + ShortcutController + PanGateController + EventInterceptor
 47. feature/documentPanDebugFeature ← 依赖 DocumentScrollController + MindMapBoxSelectController
@@ -339,5 +339,5 @@ UIViewTree.getAbsoluteX(view, container) → number
 ToolWatcher.watch(windowRef, force, allowRefresh) → {changed, bindingListChanged, signatureChanged}
 ToolWatcher.reset()
 
-ActionProcessor.process(actionId, picker, state) → {handled, reason, slotIndex, bindingListChanged}
+ActionProcessor.process(actionId, picker, state) → {handled, reason, slotIndex, toolCount, className, bindingListChanged}
 ```

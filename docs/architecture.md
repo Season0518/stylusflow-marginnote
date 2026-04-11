@@ -86,7 +86,35 @@ ToolWatcher.watch() → EventInterceptor.refresh()
 
 ---
 
-## 数据流：脑图框选标定与桥接
+## 数据流：脑图框选自动激活
+
+```
+插件载入（sceneWillConnect）
+  ↓
+lifecycleFeature._ensureBoxSelect(sc)
+  → MindMapBoxSelectController.getDebugState().modeActive 为 false
+  → MindMapBoxSelectController.toggleBoxSelectMode(sc) 自动激活框选
+      → 优先复用已标定 recognizerId；未标定时回退查找 SelectionPanGesture（id='2273'）
+      → MindMapBoxBridge.start(sc, recognizerId)
+          → 找到 MindMapCanvas
+          → 在原框选手势所在 ownerView 注入 UIPanGestureRecognizer
+          → selector 指向 MindMapCanvas.handlePanGesture:
+
+每次布局（controllerWillLayoutSubviews，controller === studyController）
+  ↓
+lifecycleFeature._ensureBoxSelect(sc)
+  → 若 modeActive 为 false（如视图重建导致桥接失效），重新激活
+
+插件首次载入 sceneWillConnect 额外行为
+  ↓
+CanvasToolController.find → detectAllTools → activate(last) 强制选中最后一个工具
+  → ctx.shortcutState.lastToolSlot = tools.length - 1  对齐初始状态
+  → 后续交给 MarginNote 自身 onFail 优先级机制处理手写/框选冲突
+```
+
+---
+
+## 数据流：脑图框选标定与桥接（手动 Debug 入口）
 
 ```
 用户点击「标定框选」
@@ -106,13 +134,8 @@ MNStylusFlowAddon.onProbeMindMapBoxSelect:
 用户点击「框选模式」
   ↓
 MNStylusFlowAddon.onToggleMindMapBoxSelect:
-  → MindMapBoxSelectController.toggleBoxSelectMode(sc)
-      → 优先复用已标定 recognizerId；未标定时回退查找 SelectionPanGesture
-      → MindMapBoxBridge.start(sc, recognizerId)
-          → 找到 MindMapCanvas
-          → 在原框选手势所在 ownerView 注入 UIPanGestureRecognizer
-          → selector 指向 MindMapCanvas.handlePanGesture:
-      → DebugContainer 同步按钮标题/颜色
+  → MindMapBoxSelectController.toggleBoxSelectMode(sc)（无条件 toggle，debug 用）
+      → 同上自动激活链路
 
 用户再次点击「关闭框选」
   ↓
@@ -131,7 +154,7 @@ MindMapBoxSelectController.stopBoxSelectMode()
 
 | 状态 | 位置 | 描述 |
 |------|------|------|
-| `_shortcutState.lastToolSlot` | MNStylusFlowAddon | 上次激活的工具槽位（用于 prev/next 计算） |
+| `_shortcutState.lastToolSlot` | MNStylusFlowAddon | 上次激活的工具槽位（0-indexed；sceneWillConnect 时强制初始化为最后一个槽位） |
 | `_panel` | MNStylusFlowAddon | 面板实例引用 |
 | `ToolWatcher._state` | ToolWatcher | 上次同步时间 + 工具特征签名 |
 | `ShortcutRegistry.bindings` | ShortcutRegistry | 当前所有绑定（actionId → binding） |
