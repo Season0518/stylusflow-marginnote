@@ -1,7 +1,8 @@
 const ShortcutStorage = (() => {
   const STORAGE_KEY = 'stylusflow.shortcuts.bindings.v1';
+  const TOOL_COUNT_KEY = 'stylusflow.shortcuts.toolcount.v1';
   const PAN_GATE_STORAGE_KEY = 'stylusflow.pangate.config.v1';
-  const ALL_CONFIG_KEYS = [STORAGE_KEY, PAN_GATE_STORAGE_KEY];
+  const ALL_CONFIG_KEYS = [STORAGE_KEY, TOOL_COUNT_KEY, PAN_GATE_STORAGE_KEY];
 
   function buildInitialDefaultBindings() {
     const commandShift = ShortcutConstants.FLAGS.COMMAND_SHIFT;
@@ -83,6 +84,26 @@ const ShortcutStorage = (() => {
     }
   }
 
+  function saveToolCount(n) {
+    const defaults = getDefaults();
+    if (!defaults) return false;
+    try {
+      defaults.setObjectForKey(String(n), TOOL_COUNT_KEY);
+      defaults.synchronize();
+      return true;
+    } catch (e) { return false; }
+  }
+
+  function loadToolCount() {
+    const defaults = getDefaults();
+    if (!defaults) return 0;
+    try {
+      const raw = defaults.stringForKey(TOOL_COUNT_KEY);
+      const n = parseInt(raw, 10);
+      return !isNaN(n) && n > 0 ? n : 0;
+    } catch (e) { return 0; }
+  }
+
   function clearAllAddonConfigs() {
     const defaults = getDefaults();
     if (!defaults) return false;
@@ -98,5 +119,5 @@ const ShortcutStorage = (() => {
     }
   }
 
-  return { loadBindings, saveBindings, clearAllAddonConfigs };
+  return { loadBindings, saveBindings, saveToolCount, loadToolCount, clearAllAddonConfigs };
 })();
