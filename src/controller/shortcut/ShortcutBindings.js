@@ -37,9 +37,11 @@ const ShortcutBindings = (function () {
     dynamicToolCount = nextCount;
     _rebuildCachedIds();
 
-    var valid = new Set(cachedOrderedIds);
-    var removed = ShortcutRegistry.pruneToSet(valid);
-    if (removed) _persistBindings();
+    if (nextCount > 0) {
+      var valid = new Set(cachedOrderedIds);
+      var removed = ShortcutRegistry.pruneToSet(valid);
+      if (removed) _persistBindings();
+    }
     return true;
   }
 
