@@ -1,17 +1,40 @@
-function documentPanDebugFeature() {
+function documentPanDebugFeature(ctx) {
   function getStudyController() {
     return Application.sharedInstance().studyController(self.window);
+  }
+
+  function refreshDebugPanel() {
+    if (ctx && ctx.panel && ctx.panel.isMounted()) ctx.panel.refreshDebug();
   }
 
   function panReader(dx, dy) {
     var studyController = getStudyController();
     if (!studyController || typeof DocumentScrollController === 'undefined') {
-      console.log('[StylusFlow] 文档平移失败：控制器不可用');
       return false;
     }
 
-    var ok = DocumentScrollController.panStudyView(studyController, dx, dy);
-    console.log('[StylusFlow] 文档平移 dx=' + String(dx) + ', dy=' + String(dy) + ', ok=' + String(ok));
+    return DocumentScrollController.panStudyView(studyController, dx, dy);
+  }
+
+  function probeMindMapBoxSelect() {
+    var studyController = getStudyController();
+    if (!studyController || typeof MindMapBoxSelectController === 'undefined') {
+      return false;
+    }
+
+    var ok = MindMapBoxSelectController.startCalibration(studyController);
+    refreshDebugPanel();
+    return ok;
+  }
+
+  function toggleMindMapBoxSelect() {
+    var studyController = getStudyController();
+    if (!studyController || typeof MindMapBoxSelectController === 'undefined') {
+      return false;
+    }
+
+    var ok = MindMapBoxSelectController.toggleBoxSelectMode(studyController);
+    refreshDebugPanel();
     return ok;
   }
 
@@ -27,6 +50,12 @@ function documentPanDebugFeature() {
     },
     onTestPanRight: function () {
       return panReader(DocumentScrollController.DEFAULT_PAN_STEP, 0);
+    },
+    onProbeMindMapBoxSelect: function () {
+      return probeMindMapBoxSelect();
+    },
+    onToggleMindMapBoxSelect: function () {
+      return toggleMindMapBoxSelect();
     },
   };
 }

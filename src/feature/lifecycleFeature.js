@@ -8,15 +8,14 @@ function lifecycleFeature(ctx, mainPath) {
       EventInterceptor.start(self);
       ToolWatcher.watch(self.window, true, true);
       if (ctx.panel) ctx.panel.refreshShortcutBindings();
-      console.log(Strings.addon.initialized);
     },
     sceneDidDisconnect: function () {
       if (ctx.panel) ctx.panel.unmount();
       ctx.panel = null;
       ToolWatcher.reset();
       EventInterceptor.stop();
+      if (typeof MindMapBoxSelectController !== 'undefined') MindMapBoxSelectController.stopBoxSelectMode();
       PanGateController.forceExpire();
-      console.log(Strings.addon.disconnected);
     },
     controllerWillLayoutSubviews: function (controller) {
       var app = Application.sharedInstance();

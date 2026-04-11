@@ -62,6 +62,7 @@ function createPanelContainer(addon) {
   }
 
   function unmount() {
+    if (typeof MindMapBoxSelectController !== 'undefined') MindMapBoxSelectController.stopBoxSelectMode();
     if (rootView.superview && rootView.removeFromSuperview) rootView.removeFromSuperview();
   }
 

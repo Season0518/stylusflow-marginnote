@@ -6,7 +6,7 @@ function createMNStylusFlowAddon(mainPath) {
       lifecycleFeature(ctx, mainPath),
       shortcutFeature(ctx),
       panelEventFeature(ctx),
-      documentPanDebugFeature(),
+      documentPanDebugFeature(ctx),
     ])
   );
 }
