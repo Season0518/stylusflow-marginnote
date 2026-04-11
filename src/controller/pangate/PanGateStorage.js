@@ -8,9 +8,7 @@ const PanGateStorage = (function () {
       var ud = NSUserDefaults.standardUserDefaults();
       ud.setObjectForKey(JSON.stringify(config), KEY);
       ud.synchronize();
-    } catch (e) {
-      console.log('[StylusFlow][PanGate] 保存失败: ' + String(e));
-    }
+    } catch (e) {}
   }
 
   function load() {
@@ -21,7 +19,6 @@ const PanGateStorage = (function () {
       var p = JSON.parse(text);
       return (p && typeof p === 'object') ? p : null;
     } catch (e) {
-      console.log('[StylusFlow][PanGate] 加载失败: ' + String(e));
       return null;
     }
   }

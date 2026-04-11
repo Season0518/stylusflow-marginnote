@@ -21,7 +21,6 @@ const EventInterceptor = (function () {
     if (_active) return true;
     var pool = createPanGesturePool(addon);
     if (!pool.refresh()) {
-      console.log('[StylusFlow][Intercept] 未找到 MbUIBookView，无法开启拦截');
       return false;
     }
     _pool = pool;
@@ -37,7 +36,6 @@ const EventInterceptor = (function () {
     if (_pool) { _pool.detachAll(); _pool = null; }
     _active = false;
     _addon = null;
-    console.log('[StylusFlow][Intercept] 拦截已关闭');
   }
 
   function refresh() {
@@ -90,9 +88,7 @@ const EventInterceptor = (function () {
         entry.gestureActive = false;
         syncGate();
       }
-    } catch (e) {
-      console.log('[StylusFlow][Intercept] PAN 处理失败: ' + String(e));
-    }
+    } catch (e) {}
   }
 
   return {

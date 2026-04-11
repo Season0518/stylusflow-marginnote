@@ -18,11 +18,14 @@ function createPanGesturePool(addon) {
     var rec = new UIPanGestureRecognizer(addon, 'onInterceptPan:');
     view.addGestureRecognizer(rec);
     var existing = UIViewTree.toArray(view.gestureRecognizers);
+
     for (var i = 0; i < existing.length; i++) {
-      if (existing[i] !== rec) try { existing[i].requireGestureRecognizerToFail(rec); } catch (e) {}
+      var gest = existing[i];
+      if (gest !== rec) {
+        try { gest.requireGestureRecognizerToFail(rec); } catch (e) {}
+      }
     }
     _entries.push({ view: view, recognizer: rec, gestureActive: false });
-    console.log('[StylusFlow][Pool] 附加至 ' + UIViewTree.getClassName(view));
   }
 
   // ── 查询 ────────────────────────────────────────────────────

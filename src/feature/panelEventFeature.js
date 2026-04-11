@@ -34,7 +34,6 @@ function panelEventFeature(ctx) {
     onDebugToggle: function (sender) { if (ctx.panel) ctx.panel.toggleDebugItem(sender.tag); },
     onToggleEventIntercept: function () {
       if (!ctx.panel) return;
-      console.log('[StylusFlow][Debug] 点击事件拦截按钮');
       ctx.panel.toggleEventIntercept();
       ctx.panel.refreshDebug();
     },

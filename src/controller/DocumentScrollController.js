@@ -58,30 +58,11 @@ const DocumentScrollController = (function () {
 
   function debugProbe(studyController) {
     if (!studyController || !studyController.readerController || !studyController.readerController.view) {
-      console.log('[StylusFlow] debugProbe abort: readerController missing');
       return { visited: 0, matches: 0, bestName: 'none' };
     }
     var candidates = [];
     collectCandidates(studyController.readerController.view, candidates);
     var best = chooseBest(candidates);
-
-    console.log('[StylusFlow] debugProbe candidates=' + String(candidates.length));
-    for (var i = 0; i < candidates.length; i++) {
-      var row = candidates[i];
-      console.log(
-        '[StylusFlow] candidate[' +
-          String(i) +
-          '] class=' +
-          row.className +
-          ', scrollableY=' +
-          String(Math.round(row.scrollableY)) +
-          ', area=' +
-          String(Math.round(row.area)),
-      );
-    }
-    if (best) {
-      console.log('[StylusFlow] debugProbe best=' + UIViewTree.getClassName(best));
-    }
 
     return {
       visited: candidates.length,
@@ -116,7 +97,6 @@ const DocumentScrollController = (function () {
       }
       return true;
     } catch (e) {
-      console.log('[StylusFlow] 文档平移失败: ' + String(e));
       return false;
     }
   }

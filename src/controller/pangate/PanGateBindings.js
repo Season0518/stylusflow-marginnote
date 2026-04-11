@@ -116,7 +116,6 @@ const PanGateBindings = (function () {
     if (typeof p.stopInput === 'string')  _stopInput = F.normalizeInput(p.stopInput);
     if (typeof p.stopFlags === 'number')  _stopFlags = F.normalizeFlags(p.stopFlags);
     if (!_hasStop) { _stopInput = ''; _stopFlags = 0; }
-    console.log('[StylusFlow][PanGate] 配置已加载');
   }
 
   function resetConfig() { _applyDefaults(); }
