@@ -24,12 +24,20 @@ function panelEventFeature(ctx) {
     onResetAddonConfig: function () {
       if (!ShortcutController.clearAllPersistedConfig()) return;
       ShortcutController.restorePersistedBindings();
+      PanGateController.resetConfig();
+      EventInterceptor.syncGate();
       if (ctx.panel) { ctx.panel.refreshShortcutBindings(); ctx.panel.refreshDebug(); }
       var sc = Application.sharedInstance().studyController(self.window);
       if (sc) sc.refreshAddonCommands();
     },
     onActivateTool: function (sender) { if (ctx.panel) ctx.panel.activateTool(sender.tag); },
     onDebugToggle: function (sender) { if (ctx.panel) ctx.panel.toggleDebugItem(sender.tag); },
+    onToggleEventIntercept: function () {
+      if (!ctx.panel) return;
+      ctx.panel.toggleEventIntercept();
+      ctx.panel.refreshDebug();
+    },
+    onInterceptPan: function (recognizer) { EventInterceptor.handlePan(recognizer); },
     onToggleDirectToolsTab: function () { if (ctx.panel) ctx.panel.toggleDirectToolsTab(); },
     onShortcutBindingTap: function (sender) { if (ctx.panel) ctx.panel.handleShortcutBindingTap(sender.tag); },
     onShortcutEditorModifierTap: function (sender) { if (ctx.panel) ctx.panel.handleShortcutEditorModifierTap(sender.tag); },

@@ -16,6 +16,11 @@ const InfoSection = (function () {
     y = KVRow.make(parent, F.lastBindingAction, sc.lastBindingAction || Strings.debug.none, y, 0, panelWidth);
     y = KVRow.make(parent, F.lastBindingValue, sc.lastBindingValue || Strings.debug.none, y, 0, panelWidth);
     y = KVRow.make(parent, F.lastBindingAt,    sc.lastBindingAt || Strings.debug.none,  y, 0, panelWidth);
+    y = KVRow.make(parent, F.interceptStatus,  data.interceptStatus || Strings.debug.disabled, y, 0, panelWidth);
+    y = KVRow.make(parent, F.panGateStatus,    data.panGateStatus || Strings.debug.disabled, y, 0, panelWidth);
+    y = KVRow.make(parent, F.panTriggerKey,    data.panTriggerKey || Strings.debug.notSet, y, 0, panelWidth);
+    y = KVRow.make(parent, F.panStopKey,       data.panStopKey || Strings.debug.notSet, y, 0, panelWidth);
+    y = KVRow.make(parent, F.panExpiredMs,     data.panExpiredMs || '0ms', y, 0, panelWidth);
     return y;
   }
 

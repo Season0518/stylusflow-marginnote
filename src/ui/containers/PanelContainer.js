@@ -62,6 +62,7 @@ function createPanelContainer(addon) {
   }
 
   function unmount() {
+    if (typeof MindMapBoxSelectController !== 'undefined') MindMapBoxSelectController.stopBoxSelectMode();
     if (rootView.superview && rootView.removeFromSuperview) rootView.removeFromSuperview();
   }
 
@@ -110,6 +111,7 @@ function createPanelContainer(addon) {
     refreshDebug: function () { debugCtrl.refresh(collectTools(), picker); },
     refreshShortcutBindings: function () { shortcutsCtrl.updateBindings(ShortcutController.getBindingLabelMap()); },
     toggleDebugItem: function (idx) { debugCtrl.toggleItem(idx); },
+    toggleEventIntercept: function () { debugCtrl.toggleIntercept(); },
     toggleDirectToolsTab: function () { shortcutsCtrl.toggleDirectToolsTab(); },
     handleShortcutBindingTap: function (tag) { return shortcutsCtrl.handleBindingTap(tag); },
     handleShortcutEditorModifierTap: function (tag) { return shortcutsCtrl.handleEditorModifierTap(tag); },

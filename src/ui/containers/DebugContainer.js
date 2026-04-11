@@ -10,13 +10,58 @@ function createDebugContainer(config) {
 
   built.scanBtn.addTargetActionForControlEvents(addon, 'onScanTools:', 1 << 6);
   built.resetBtn.addTargetActionForControlEvents(addon, 'onResetAddonConfig:', 1 << 6);
+  built.panUpBtn.addTargetActionForControlEvents(addon, 'onTestPanUp:', 1 << 6);
+  built.panDownBtn.addTargetActionForControlEvents(addon, 'onTestPanDown:', 1 << 6);
+  built.panLeftBtn.addTargetActionForControlEvents(addon, 'onTestPanLeft:', 1 << 6);
+  built.panRightBtn.addTargetActionForControlEvents(addon, 'onTestPanRight:', 1 << 6);
+  built.mindMapBoxProbeBtn.addTargetActionForControlEvents(addon, 'onProbeMindMapBoxSelect:', 1 << 6);
+  built.mindMapBoxModeBtn.addTargetActionForControlEvents(addon, 'onToggleMindMapBoxSelect:', 1 << 6);
+  built.interceptBtn.addTargetActionForControlEvents(addon, 'onToggleEventIntercept:', 1 << 6);
 
   var expandedIndices = {};
   var debugData = null;
 
+  function syncInterceptButton() {
+    if (EventInterceptor.isActive()) {
+      built.interceptBtn.setTitleForState(Strings.debug.interceptStop, 0);
+      built.interceptBtn.backgroundColor = UIColor.colorWithRedGreenBlueAlpha(0.9, 0.3, 0.2, 1);
+    } else {
+      built.interceptBtn.setTitleForState(Strings.debug.interceptStart, 0);
+      built.interceptBtn.backgroundColor = UIColor.colorWithRedGreenBlueAlpha(0.2, 0.6, 0.9, 1);
+    }
+  }
+
+  function syncMindMapBoxButtons() {
+    if (typeof MindMapBoxSelectController === 'undefined') return;
+    var state = MindMapBoxSelectController.getDebugState();
+
+    built.mindMapBoxProbeBtn.setTitleForState(Strings.debug.mindMapBoxProbe, 0);
+    built.mindMapBoxProbeBtn.backgroundColor = UIColor.colorWithWhiteAlpha(0.5, 1);
+
+    if (state.modeActive) {
+      built.mindMapBoxModeBtn.setTitleForState(Strings.debug.mindMapBoxModeOff, 0);
+      built.mindMapBoxModeBtn.backgroundColor = UIColor.colorWithRedGreenBlueAlpha(0.9, 0.3, 0.2, 1);
+      return;
+    }
+
+    built.mindMapBoxModeBtn.setTitleForState(Strings.debug.mindMapBoxModeOn, 0);
+    built.mindMapBoxModeBtn.backgroundColor = state.calibrated
+      ? UIColor.colorWithRedGreenBlueAlpha(0.2, 0.7, 0.45, 1)
+      : UIColor.colorWithWhiteAlpha(0.4, 1);
+  }
+
+  function _applyLiveFields(obj) {
+    var panGate = PanGateController.getDebugState();
+    obj.interceptStatus = EventInterceptor.isActive() ? Strings.debug.enabled : Strings.debug.disabled;
+    obj.panGateStatus = panGate.isActive ? Strings.debug.enabled : Strings.debug.disabled;
+    obj.panTriggerKey = panGate.triggerLabel;
+    obj.panStopKey = panGate.stopLabel;
+    obj.panExpiredMs = String(panGate.expiredMs) + 'ms';
+  }
+
   function buildData(tools, picker) {
     var toolList = tools || [];
-    return {
+    var data = {
       isVisible: CanvasToolController.isVisible(picker),
       toolCount: toolList.length,
       shortcuts: ShortcutController.getDebugState(),
@@ -29,10 +74,15 @@ function createDebugContainer(config) {
         };
       }),
     };
+    _applyLiveFields(data);
+    return data;
   }
 
   function render() {
+    if (debugData) _applyLiveFields(debugData);
     UIViewTree.clearSubviews(scroll);
+    syncInterceptButton();
+    syncMindMapBoxButtons();
 
     if (!debugData) {
       var lbl = new UILabel({ x: 0, y: 20, width: panelWidth, height: 30 });
@@ -59,10 +109,20 @@ function createDebugContainer(config) {
     scroll.contentSize = { width: panelWidth, height: y + 8 };
   }
 
+  function toggleIntercept() {
+    if (EventInterceptor.isActive()) {
+      EventInterceptor.stop();
+    } else {
+      EventInterceptor.start(addon);
+    }
+    render();
+  }
+
   return {
     view: pane,
     onShow: render,
     refresh: function (tools, picker) { debugData = buildData(tools, picker); render(); },
     toggleItem: function (idx) { expandedIndices[idx] = !expandedIndices[idx]; render(); },
+    toggleIntercept: toggleIntercept,
   };
 }

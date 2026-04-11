@@ -1,6 +1,7 @@
 const ShortcutStorage = (() => {
   const STORAGE_KEY = 'stylusflow.shortcuts.bindings.v1';
-  const ALL_CONFIG_KEYS = [STORAGE_KEY];
+  const PAN_GATE_STORAGE_KEY = 'stylusflow.pangate.config.v1';
+  const ALL_CONFIG_KEYS = [STORAGE_KEY, PAN_GATE_STORAGE_KEY];
 
   function buildInitialDefaultBindings() {
     const commandShift = ShortcutConstants.FLAGS.COMMAND_SHIFT;

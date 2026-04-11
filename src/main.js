@@ -12,6 +12,19 @@ JSB.require('controller/shortcut/ShortcutRuntime');
 JSB.require('controller/ShortcutController');
 JSB.require('core/ToolWatcher');
 JSB.require('core/ActionProcessor');
+JSB.require('controller/DocumentScrollController');
+JSB.require('controller/mindmap/MindMapShared');
+JSB.require('controller/mindmap/MindMapBoxGestureCollector');
+JSB.require('controller/mindmap/MindMapBoxCalibration');
+JSB.require('controller/mindmap/MindMapBoxBridge');
+JSB.require('controller/mindmap/MindMapBoxSelectRuntime');
+JSB.require('controller/MindMapBoxSelectController');
+JSB.require('controller/pangate/PanGateConstants');
+JSB.require('controller/pangate/PanGateStorage');
+JSB.require('controller/pangate/PanGateBindings');
+JSB.require('controller/PanGateController');
+JSB.require('controller/pangate/PanGesturePool');
+JSB.require('controller/pangate/EventInterceptor');
 // utils
 JSB.require('utils/NativeSerializer');
 // ui/components/base
@@ -39,6 +52,7 @@ JSB.require('feature/composeAddonMethods');
 JSB.require('feature/lifecycleFeature');
 JSB.require('feature/shortcutFeature');
 JSB.require('feature/panelEventFeature');
+JSB.require('feature/documentPanDebugFeature');
 JSB.require('MNStylusFlowAddon');
 
 JSB.newAddon = function (mainPath) {

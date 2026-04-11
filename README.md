@@ -4,7 +4,7 @@
 
 ## Overview
 
-**StylusFlow** is a MarginNote 4 plugin that lets you assign custom keyboard shortcuts to canvas tools (pen, highlighter, eraser, etc.), providing a handwriting experience even smoother than on an iPad.
+**StylusFlow** is a MarginNote 4 plugin that lets you assign custom keyboard shortcuts to canvas tools (pen, highlighter, eraser, etc.), with PDF pan gating and mind-map box-selection bridging for a smoother handwriting workflow.
 
 ---
 
@@ -32,7 +32,7 @@ pnpm dev
 4. Press the key combination you want
 5. Confirm and save
 
-In the “Debug” tab, you can view the last activated shortcut and the tool detection status.
+In the “Debug” tab, you can inspect shortcut/tool detection state, manage PDF pan interception, test pan directions, and calibrate or toggle mind-map box-selection mode. Release builds stay silent in the console.
 
 If you encounter an unsolvable issue, please describe your problem in the Issues section. To ensure efficient communication, please clearly describe the issue you are facing.
 
