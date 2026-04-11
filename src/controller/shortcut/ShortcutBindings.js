@@ -10,6 +10,8 @@ const ShortcutBindings = (function () {
   // MarginNote canvas toolbar: last N slots are fixed function tools (eraser / selection / etc.)
   // that never shift; new tools are always inserted at position 1 from the front.
   var FUNC_TAIL = 3;
+  // Tracks the last positive tool count; used as migration baseline even after a 0 interlude.
+  var lastPositiveCount = _c.DEFAULT_TOOL_COUNT;
 
   function _persistBindings() {
     return ShortcutStorage.saveBindings(ShortcutRegistry.exportAll());
@@ -79,12 +81,12 @@ const ShortcutBindings = (function () {
     var nextCount = !isNaN(parsed) && parsed > 0 ? parsed : 0;
     if (nextCount === dynamicToolCount) return false;
 
-    var prevCount = dynamicToolCount;
     dynamicToolCount = nextCount;
     _rebuildCachedIds();
 
     if (nextCount > 0) {
-      var migrated = prevCount > 0 ? _migrateFuncToolBindings(prevCount, nextCount) : false;
+      var migrated = _migrateFuncToolBindings(lastPositiveCount, nextCount);
+      lastPositiveCount = nextCount;
       var valid = new Set(cachedOrderedIds);
       var removed = ShortcutRegistry.pruneToSet(valid);
       if (migrated || removed) _persistBindings();
