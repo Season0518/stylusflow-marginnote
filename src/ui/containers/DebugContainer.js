@@ -14,6 +14,8 @@ function createDebugContainer(config) {
   built.panDownBtn.addTargetActionForControlEvents(addon, 'onTestPanDown:', 1 << 6);
   built.panLeftBtn.addTargetActionForControlEvents(addon, 'onTestPanLeft:', 1 << 6);
   built.panRightBtn.addTargetActionForControlEvents(addon, 'onTestPanRight:', 1 << 6);
+  built.mindMapBoxProbeBtn.addTargetActionForControlEvents(addon, 'onProbeMindMapBoxSelect:', 1 << 6);
+  built.mindMapBoxModeBtn.addTargetActionForControlEvents(addon, 'onToggleMindMapBoxSelect:', 1 << 6);
   built.interceptBtn.addTargetActionForControlEvents(addon, 'onToggleEventIntercept:', 1 << 6);
 
   var expandedIndices = {};
@@ -27,6 +29,25 @@ function createDebugContainer(config) {
       built.interceptBtn.setTitleForState(Strings.debug.interceptStart, 0);
       built.interceptBtn.backgroundColor = UIColor.colorWithRedGreenBlueAlpha(0.2, 0.6, 0.9, 1);
     }
+  }
+
+  function syncMindMapBoxButtons() {
+    if (typeof MindMapBoxSelectController === 'undefined') return;
+    var state = MindMapBoxSelectController.getDebugState();
+
+    built.mindMapBoxProbeBtn.setTitleForState(Strings.debug.mindMapBoxProbe, 0);
+    built.mindMapBoxProbeBtn.backgroundColor = UIColor.colorWithWhiteAlpha(0.5, 1);
+
+    if (state.modeActive) {
+      built.mindMapBoxModeBtn.setTitleForState(Strings.debug.mindMapBoxModeOff, 0);
+      built.mindMapBoxModeBtn.backgroundColor = UIColor.colorWithRedGreenBlueAlpha(0.9, 0.3, 0.2, 1);
+      return;
+    }
+
+    built.mindMapBoxModeBtn.setTitleForState(Strings.debug.mindMapBoxModeOn, 0);
+    built.mindMapBoxModeBtn.backgroundColor = state.calibrated
+      ? UIColor.colorWithRedGreenBlueAlpha(0.2, 0.7, 0.45, 1)
+      : UIColor.colorWithWhiteAlpha(0.4, 1);
   }
 
   function _applyLiveFields(obj) {
@@ -61,6 +82,7 @@ function createDebugContainer(config) {
     if (debugData) _applyLiveFields(debugData);
     UIViewTree.clearSubviews(scroll);
     syncInterceptButton();
+    syncMindMapBoxButtons();
 
     if (!debugData) {
       var lbl = new UILabel({ x: 0, y: 20, width: panelWidth, height: 30 });
@@ -88,12 +110,10 @@ function createDebugContainer(config) {
   }
 
   function toggleIntercept() {
-    console.log('[StylusFlow][Debug] toggleIntercept active=' + String(EventInterceptor.isActive()));
     if (EventInterceptor.isActive()) {
       EventInterceptor.stop();
     } else {
-      var started = EventInterceptor.start(addon);
-      console.log('[StylusFlow][Debug] EventInterceptor.start -> ' + String(started));
+      EventInterceptor.start(addon);
     }
     render();
   }

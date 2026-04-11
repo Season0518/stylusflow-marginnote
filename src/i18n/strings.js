@@ -50,6 +50,10 @@ const Strings = Object.freeze({
     panDown: '下移',
     panLeft: '左移',
     panRight: '右移',
+    mindMapBoxProbe: '标定框选',
+    mindMapBoxModeOn: '框选模式',
+    mindMapBoxModeOff: '关闭框选',
+    mindMapBoxNeedProbe: '请先标定框选',
     interceptStart: '事件拦截',
     interceptStop: '停止拦截',
     enabled: '开启',
@@ -89,9 +93,5 @@ const Strings = Object.freeze({
     toolUnavailable: '目标工具不可用',
     activateFailed: '工具激活失败',
     done: '已执行',
-  },
-  addon: {
-    initialized: '[StylusFlow] initialized',
-    disconnected: '[StylusFlow] disconnected',
   },
 });

@@ -1,5 +1,5 @@
 // Debug tab 容器骨架：pane + 按钮组 + scroll（纯视图，不挂事件）
-// DebugPaneView.build(config) → { pane, scroll, scanBtn, resetBtn, panUpBtn, ..., interceptBtn }
+// DebugPaneView.build(config) → { pane, scroll, scanBtn, resetBtn, panUpBtn, ..., mindMapBoxProbeBtn, mindMapBoxModeBtn, interceptBtn }
 // config: { panelWidth, originY, contentHeight }
 const DebugPaneView = (function () {
   function styleButton(button, title, bgColor) {
@@ -57,12 +57,22 @@ const DebugPaneView = (function () {
     styleButton(panDownBtn, Strings.debug.panDown, UIColor.colorWithWhiteAlpha(0.42, 1));
     pane.addSubview(panDownBtn);
 
+    var mindMapBoxProbeBtn = UIButton.buttonWithType(0);
+    mindMapBoxProbeBtn.frame = { x: 10, y: panTop + 112, width: btnW, height: 32 };
+    styleButton(mindMapBoxProbeBtn, Strings.debug.mindMapBoxProbe, UIColor.colorWithWhiteAlpha(0.5, 1));
+    pane.addSubview(mindMapBoxProbeBtn);
+
+    var mindMapBoxModeBtn = UIButton.buttonWithType(0);
+    mindMapBoxModeBtn.frame = { x: 18 + btnW, y: panTop + 112, width: btnW, height: 32 };
+    styleButton(mindMapBoxModeBtn, Strings.debug.mindMapBoxModeOn, UIColor.colorWithWhiteAlpha(0.4, 1));
+    pane.addSubview(mindMapBoxModeBtn);
+
     var interceptBtn = UIButton.buttonWithType(0);
-    interceptBtn.frame = { x: 10, y: panTop + 112, width: panelWidth - 20, height: 32 };
+    interceptBtn.frame = { x: 10, y: panTop + 152, width: panelWidth - 20, height: 32 };
     styleButton(interceptBtn, Strings.debug.interceptStart, UIColor.colorWithRedGreenBlueAlpha(0.2, 0.6, 0.9, 1));
     pane.addSubview(interceptBtn);
 
-    var scrollTop = panTop + 152;
+    var scrollTop = panTop + 192;
     var scroll = new UIScrollView({ x: 0, y: scrollTop, width: panelWidth, height: contentHeight - scrollTop });
     scroll.alwaysBounceVertical = true;
     pane.addSubview(scroll);
@@ -76,6 +86,8 @@ const DebugPaneView = (function () {
       panDownBtn: panDownBtn,
       panLeftBtn: panLeftBtn,
       panRightBtn: panRightBtn,
+      mindMapBoxProbeBtn: mindMapBoxProbeBtn,
+      mindMapBoxModeBtn: mindMapBoxModeBtn,
       interceptBtn: interceptBtn,
     };
   }
