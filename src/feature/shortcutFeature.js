@@ -28,9 +28,12 @@ function shortcutFeature(ctx) {
       );
     },
     queryShortcutKeyWithKeyFlags: function (command, keyFlags) {
-      var panQuery = PanGateController.queryKey(command, keyFlags);
-      if (panQuery) return panQuery;
-      return ShortcutController.queryShortcut(command, keyFlags);
+      var ni = ShortcutFormatter.normalizeInput(command);
+      var nf = ShortcutFormatter.normalizeFlags(keyFlags);
+      if (PanGateController.queryKeyNormalized(ni, nf) || ShortcutRegistry.resolve(ni, nf)) {
+        return PanGateConstants.QUERY_RESULT;
+      }
+      return null;
     },
     processShortcutKeyWithKeyFlags: function (command, keyFlags) {
       ToolWatcher.watch(self.window, false, true);

@@ -6,9 +6,7 @@ const PanGateController = (function () {
   var _lastHeartbeatAt = 0;
   var _captureTarget = null; // 'trigger' | 'stop' | null
 
-  function _now() {
-    return (typeof Date !== 'undefined') ? Date.now() : 0;
-  }
+  function _now() { return Date.now(); }
 
   // ── 门控状态 ────────────────────────────────────────────────
   function isActive() {
@@ -25,14 +23,15 @@ const PanGateController = (function () {
   function cancelCapture() { _captureTarget = null; }
 
   // ── 热路径：归一化一次，直接比对已归一化的存储值 ──────────────
+  function queryKeyNormalized(ni, nf) {
+    if (_captureTarget !== null) return true;
+    return PanGateBindings.matchesTrigger(ni, nf) || PanGateBindings.matchesStop(ni, nf);
+  }
+
   function queryKey(input, flags) {
     var ni = ShortcutFormatter.normalizeInput(input);
     var nf = ShortcutFormatter.normalizeFlags(flags);
-    if (_captureTarget !== null) return QUERY_RESULT;
-    if (PanGateBindings.matchesTrigger(ni, nf) || PanGateBindings.matchesStop(ni, nf)) {
-      return QUERY_RESULT;
-    }
-    return null;
+    return queryKeyNormalized(ni, nf) ? QUERY_RESULT : null;
   }
 
   function processKey(input, flags) {
@@ -85,6 +84,7 @@ const PanGateController = (function () {
     getCaptureTarget: getCaptureTarget,
     cancelCapture: cancelCapture,
     queryKey: queryKey,
+    queryKeyNormalized: queryKeyNormalized,
     processKey: processKey,
     getDebugState: getDebugState,
     init: init,
