@@ -36,6 +36,11 @@ function shortcutFeature(ctx) {
       ToolWatcher.watch(self.window, false, true);
       var panAction = PanGateController.processKey(command, keyFlags);
       if (panAction) {
+        if (panAction === 'stop') {
+          EventInterceptor.armSoftStop();
+        } else if (panAction === 'trigger') {
+          EventInterceptor.clearSoftStop();
+        }
         EventInterceptor.syncGate();
         if (ctx.panel && ctx.panel.isMounted()) ctx.panel.refreshDebug();
         if (panAction === 'capture') {
@@ -43,6 +48,13 @@ function shortcutFeature(ctx) {
           if (sc0) sc0.refreshAddonCommands();
         }
         return true;
+      }
+
+      var ni = ShortcutFormatter.normalizeInput(command);
+      var nf = ShortcutFormatter.normalizeFlags(keyFlags);
+      if (PanGateBindings.matchesStop(ni, nf)) {
+        EventInterceptor.armSoftStop();
+        EventInterceptor.syncGate();
       }
 
       var actionId = ShortcutController.resolveAction(command, keyFlags);

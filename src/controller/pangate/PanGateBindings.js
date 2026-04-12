@@ -35,7 +35,12 @@ const PanGateBindings = (function () {
 
   // ── 热路径匹配（接受预归一化值，零额外开销）────────────────────
   function matchesTrigger(ni, nf) { return ni === _triggerInput && nf === _triggerFlags; }
-  function matchesStop(ni, nf)    { return _hasStop && ni === _stopInput && nf === _stopFlags; }
+  function matchesStop(ni, nf) {
+    if (!_hasStop) return false;
+    if (nf !== _stopFlags) return false;
+    if (_stopInput === '') return true;
+    return ni === _stopInput;
+  }
 
   // ── 读取 ────────────────────────────────────────────────────
   function getTriggerBinding() {

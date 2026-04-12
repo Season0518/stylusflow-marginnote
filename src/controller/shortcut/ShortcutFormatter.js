@@ -44,7 +44,8 @@ const ShortcutFormatter = (() => {
   }
 
   function normalizeFlags(flags) {
-    return typeof flags === 'number' ? flags : 0;
+    if (typeof flags !== 'number') return 0;
+    return flags & (FLAGS.COMMAND | FLAGS.SHIFT | FLAGS.OPTION | FLAGS.CONTROL);
   }
 
   function formatFlags(flags) {

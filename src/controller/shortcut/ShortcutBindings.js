@@ -51,11 +51,6 @@ const ShortcutBindings = (function () {
     for (i = 0; i < FUNC_TAIL; i++) {
       saved.push(ShortcutRegistry.get(_c.getToolActionId(oldSlots[i])));
     }
-    console.log('[SF:migrate] prev=' + prevCount + ' next=' + nextCount +
-      ' oldSlots=' + JSON.stringify(oldSlots) +
-      ' newSlots=' + JSON.stringify(newSlots) +
-      ' saved=' + JSON.stringify(saved.map(function(b){ return b ? b.input : null; })));
-
     // Clear old function slots
     for (i = 0; i < FUNC_TAIL; i++) {
       ShortcutRegistry.clear(_c.getToolActionId(oldSlots[i]));
@@ -77,7 +72,6 @@ const ShortcutBindings = (function () {
         migrated = true;
       }
     }
-    console.log('[SF:migrate] done migrated=' + migrated);
     return migrated;
   }
 
@@ -86,7 +80,6 @@ const ShortcutBindings = (function () {
     var nextCount = !isNaN(parsed) && parsed > 0 ? parsed : 0;
     if (nextCount === dynamicToolCount) return false;
 
-    console.log('[SF:syncCount] ' + dynamicToolCount + '->' + nextCount + ' lastPositive=' + lastPositiveCount);
     dynamicToolCount = nextCount;
     _rebuildCachedIds();
 
@@ -96,7 +89,6 @@ const ShortcutBindings = (function () {
       ShortcutStorage.saveToolCount(nextCount);
       var valid = new Set(cachedOrderedIds);
       var removed = ShortcutRegistry.pruneToSet(valid);
-      console.log('[SF:syncCount] pruned=' + removed + ' persisting=' + (migrated || removed));
       if (migrated || removed) _persistBindings();
     }
     return true;
@@ -133,16 +125,13 @@ const ShortcutBindings = (function () {
   function restorePersistedBindings() {
     var storedCount = ShortcutStorage.loadToolCount();
     if (storedCount > 0) lastPositiveCount = storedCount;
-    console.log('[SF:restore] storedCount=' + storedCount + ' lastPositive now=' + lastPositiveCount);
     var saved = ShortcutStorage.loadBindings();
-    console.log('[SF:restore] loaded keys=' + JSON.stringify(Object.keys(saved)));
     ShortcutRegistry.clearAll();
     for (var actionId in saved) {
       var item = saved[actionId];
       if (!item || !item.input) continue;
       setBinding(actionId, item.input, item.flags, item.title, true);
     }
-    console.log('[SF:restore] registry count after restore=' + ShortcutRegistry.getCount());
   }
 
   function getAdditionalShortcutKeys() {

@@ -1,6 +1,10 @@
 // 文档滚动控制：定位主滚动视图并执行平移
 const DocumentScrollController = (function () {
   var DEFAULT_PAN_STEP = 40;
+  var _cachedTarget = null;
+  var _cachedSC = null;
+  var _cacheTs = 0;
+  var CACHE_TTL = 500;
 
   function collectCandidates(view, out) {
     if (!view) return;
@@ -102,9 +106,23 @@ const DocumentScrollController = (function () {
   }
 
   function panStudyView(studyController, dx, dy) {
-    var target = findScrollTarget(studyController);
+    var now = Date.now();
+    var target = _cachedTarget;
+    if (!target || _cachedSC !== studyController || (now - _cacheTs) > CACHE_TTL ||
+        !target.superview) {
+      target = findScrollTarget(studyController);
+      _cachedTarget = target;
+      _cachedSC = studyController;
+      _cacheTs = now;
+    }
     if (!target) return false;
     return pan(target, dx, dy);
+  }
+
+  function invalidateCache() {
+    _cachedTarget = null;
+    _cachedSC = null;
+    _cacheTs = 0;
   }
 
   return {
@@ -112,6 +130,7 @@ const DocumentScrollController = (function () {
     findScrollTarget: findScrollTarget,
     pan: pan,
     panStudyView: panStudyView,
+    invalidateCache: invalidateCache,
     debugProbe: debugProbe,
   };
 })();

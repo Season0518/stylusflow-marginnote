@@ -26,24 +26,32 @@ const PanGateController = (function () {
 
   // ── 热路径：归一化一次，直接比对已归一化的存储值 ──────────────
   function queryKey(input, flags) {
-    if (_captureTarget !== null) return QUERY_RESULT;
     var ni = ShortcutFormatter.normalizeInput(input);
     var nf = ShortcutFormatter.normalizeFlags(flags);
-    if (PanGateBindings.matchesTrigger(ni, nf) || PanGateBindings.matchesStop(ni, nf)) return QUERY_RESULT;
+    if (_captureTarget !== null) return QUERY_RESULT;
+    if (PanGateBindings.matchesTrigger(ni, nf) || PanGateBindings.matchesStop(ni, nf)) {
+      return QUERY_RESULT;
+    }
     return null;
   }
 
   function processKey(input, flags) {
+    var ni = ShortcutFormatter.normalizeInput(input);
+    var nf = ShortcutFormatter.normalizeFlags(flags);
     if (_captureTarget !== null) {
       PanGateBindings.finishCapture(input, flags, _captureTarget);
       _captureTarget = null;
       forceExpire();
       return 'capture';
     }
-    var ni = ShortcutFormatter.normalizeInput(input);
-    var nf = ShortcutFormatter.normalizeFlags(flags);
-    if (PanGateBindings.matchesTrigger(ni, nf)) { heartbeat(); return 'trigger'; }
-    if (PanGateBindings.matchesStop(ni, nf)) { forceExpire(); return 'stop'; }
+    if (PanGateBindings.matchesTrigger(ni, nf)) {
+      heartbeat();
+      return 'trigger';
+    }
+    if (PanGateBindings.matchesStop(ni, nf)) {
+      forceExpire();
+      return 'stop';
+    }
     return null;
   }
 

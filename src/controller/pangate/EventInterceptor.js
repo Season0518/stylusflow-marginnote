@@ -5,9 +5,21 @@ const EventInterceptor = (function () {
   var _desiredActive = true;
   var _addon = null;
   var _pool = null;
+  var _softStopArmed = false;
 
   function _recState(rec) { try { return Number(rec.state); } catch (e) { return -1; } }
   function _isTerminal(s) { return s === 3 || s === 4 || s === 5; }
+
+  function armSoftStop() {
+    if (!_pool) return false;
+    _softStopArmed = true;
+    return true;
+  }
+
+  function clearSoftStop() {
+    _softStopArmed = false;
+    return true;
+  }
 
   // ── 门控同步 ────────────────────────────────────────────────
   function syncGate() {
@@ -32,6 +44,7 @@ const EventInterceptor = (function () {
 
   function stop() {
     _desiredActive = false;
+    _softStopArmed = false;
     if (!_active) return;
     if (_pool) { _pool.detachAll(); _pool = null; }
     _active = false;
@@ -56,9 +69,17 @@ const EventInterceptor = (function () {
     try {
       var entry = _pool.findByRecognizer(recognizer);
       var state = _recState(recognizer);
+      var needSync = false;
+
+      if (_softStopArmed) {
+        if (entry) entry.gestureActive = false;
+        syncGate();
+        return;
+      }
 
       if (entry && _isTerminal(state)) {
         entry.gestureActive = false;
+        DocumentScrollController.invalidateCache();
         syncGate();
         return;
       }
@@ -86,8 +107,11 @@ const EventInterceptor = (function () {
 
       if (entry && _isTerminal(_recState(recognizer))) {
         entry.gestureActive = false;
-        syncGate();
+        DocumentScrollController.invalidateCache();
+        needSync = true;
       }
+
+      if (needSync) syncGate();
     } catch (e) {}
   }
 
@@ -98,6 +122,8 @@ const EventInterceptor = (function () {
     refresh: refresh,
     handlePan: handlePan,
     syncGate: syncGate,
+    armSoftStop: armSoftStop,
+    clearSoftStop: clearSoftStop,
     isActive: function () { return _active; },
   };
 })();
