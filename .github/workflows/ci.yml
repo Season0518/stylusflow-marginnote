@@ -2,6 +2,8 @@ name: CI
 
 on:
   push:
+    branches:
+      - main
     tags:
       - "v*"
   pull_request:
@@ -10,6 +12,27 @@ permissions:
   contents: write
 
 jobs:
+  swift-check:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: swiftc -typecheck scripts/stylusflow-companion.swift
+
+  build-companion:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: mkdir -p dist/companion
+      - run: swiftc scripts/stylusflow-companion.swift -O -o dist/companion/stylusflow-companion
+      - run: chmod +x dist/companion/stylusflow-companion
+      - run: tar -czf dist/stylusflow-companion-macos.tar.gz -C dist/companion stylusflow-companion
+      - name: Upload companion artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: companion
+          path: dist/stylusflow-companion-macos.tar.gz
+          if-no-files-found: error
+
   build:
     runs-on: ubuntu-latest
     steps:
@@ -23,10 +46,36 @@ jobs:
           cache: pnpm
       - run: pnpm install
       - run: pnpm run build
+      - name: Upload addon artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mnaddon
+          path: "*.mnaddon"
+          if-no-files-found: error
+
+  release:
+    needs: [swift-check, build-companion, build]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download addon artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: mnaddon
+          path: .
+      - name: Download companion artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: companion
+          path: .
+      - name: Build release bundle
+        run: mkdir -p release-bundle && cp *.mnaddon release-bundle/ && cp stylusflow-companion-macos.tar.gz release-bundle/ && zip -r -q "stylusflow-with-companion-${{ github.ref_name }}.zip" release-bundle
       - name: Create GitHub Release
-        if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: "*.mnaddon"
+          files: |
+            *.mnaddon
+            stylusflow-companion-macos.tar.gz
+            stylusflow-with-companion-${{ github.ref_name }}.zip
           fail_on_unmatched_files: true
           generate_release_notes: true

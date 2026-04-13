@@ -3,6 +3,8 @@ function createShortcutsContainer(config) {
   var panelWidth = config.panelWidth;
   var addon = config.addon;
   var ACTIONS = ShortcutController.ACTIONS;
+  var PAN_AUTO_ACTION = 'pan.autoOpen';
+  var PAN_AUTO_SELECT_ACTION = 'pan.autoSelectTool';
   var PAN_TRIGGER_ACTION = 'pan.trigger';
   var PAN_STOP_ACTION = 'pan.stop';
   var PAN_EXPIRED_ACTION = 'pan.expired';
@@ -27,6 +29,12 @@ function createShortcutsContainer(config) {
   var nextTag = 100;
 
   function getBindingLabel(actionId) {
+    if (actionId === PAN_AUTO_ACTION) {
+      return PanGateController.isAutoOpenEnabled() ? Strings.debug.enabled : Strings.debug.disabled;
+    }
+    if (actionId === PAN_AUTO_SELECT_ACTION) {
+      return PanGateController.isAutoSelectToolEnabled() ? Strings.editor.yes : Strings.editor.no;
+    }
     if (actionId === PAN_TRIGGER_ACTION) {
       var trigger = PanGateController.getTriggerBinding();
       return trigger ? trigger.display : Strings.editor.notSet;
@@ -39,6 +47,13 @@ function createShortcutsContainer(config) {
       return String(PanGateController.getExpiredMs()) + 'ms';
     }
     return bindingLabelMap[actionId] || Strings.editor.notSet;
+  }
+
+  function getStudyController() {
+    try {
+      return Application.sharedInstance().studyController(addon.window);
+    } catch (e) {}
+    return null;
   }
 
   function render() {
@@ -87,6 +102,37 @@ function createShortcutsContainer(config) {
     scroll.addSubview(panTitle);
     y += 22;
 
+    var autoRow = ToggleRow.make(
+      scroll,
+      { actionId: PAN_AUTO_ACTION, title: Strings.editor.panAutoOpenAction },
+      { panelWidth: panelWidth, indent: 12 },
+      getBindingLabel,
+      y
+    );
+    autoRow.tapBtn.tag = nextTag;
+    autoRow.tapBtn.addTargetActionForControlEvents(addon, 'onShortcutBindingTap:', 1 << 6);
+    actionIdByTag[nextTag] = PAN_AUTO_ACTION;
+    nextTag++;
+    y = autoRow.nextY;
+
+    if (!PanGateController.isAutoOpenEnabled()) {
+      scroll.contentSize = { width: panelWidth, height: y + 6 };
+      return;
+    }
+
+    var autoSelectRow = ToggleRow.make(
+      scroll,
+      { actionId: PAN_AUTO_SELECT_ACTION, title: Strings.editor.panAutoSelectToolAction },
+      { panelWidth: panelWidth, indent: 12 },
+      getBindingLabel,
+      y
+    );
+    autoSelectRow.tapBtn.tag = nextTag;
+    autoSelectRow.tapBtn.addTargetActionForControlEvents(addon, 'onShortcutBindingTap:', 1 << 6);
+    actionIdByTag[nextTag] = PAN_AUTO_SELECT_ACTION;
+    nextTag++;
+    y = autoSelectRow.nextY;
+
     for (var k = 0; k < panItems.length; k++) {
       var pr = BindingRow.make(scroll, panItems[k], { panelWidth: panelWidth, compact: false, indent: 12 }, getBindingLabel, y);
       pr.tapBtn.tag = nextTag;
@@ -125,6 +171,30 @@ function createShortcutsContainer(config) {
   panTapHandlers[PAN_STOP_ACTION]    = function () { editor.openPanStop(); };
   panTapHandlers[PAN_EXPIRED_ACTION] = function () { editor.openPanExpired(); };
 
+  function togglePanAutoOpen() {
+    var next = !PanGateController.isAutoOpenEnabled();
+    PanGateController.setAutoOpenEnabled(next);
+    if (next) {
+      EventInterceptor.start(addon);
+      var sc = getStudyController();
+      if (sc && typeof MindMapBoxSelectController !== 'undefined') MindMapBoxSelectController.ensureBoxSelectMode(sc);
+    } else {
+      EventInterceptor.stop();
+      if (typeof MindMapBoxSelectController !== 'undefined') MindMapBoxSelectController.stopBoxSelectMode();
+    }
+    var studyController = getStudyController();
+    if (studyController) studyController.refreshAddonCommands();
+    renderWithTransition();
+    return true;
+  }
+
+  function togglePanAutoSelectTool() {
+    var next = !PanGateController.isAutoSelectToolEnabled();
+    PanGateController.setAutoSelectToolEnabled(next);
+    renderWithTransition();
+    return true;
+  }
+
   render();
 
   return {
@@ -135,6 +205,8 @@ function createShortcutsContainer(config) {
     handleBindingTap: function (tag) {
       var actionId = actionIdByTag[tag];
       if (!actionId) return false;
+      if (actionId === PAN_AUTO_ACTION) return togglePanAutoOpen();
+      if (actionId === PAN_AUTO_SELECT_ACTION) return togglePanAutoSelectTool();
       var panHandler = panTapHandlers[actionId];
       if (panHandler) { panHandler(); return true; }
       editor.open(actionId);

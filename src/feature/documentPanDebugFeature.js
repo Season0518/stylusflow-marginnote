@@ -18,9 +18,7 @@ function documentPanDebugFeature(ctx) {
 
   function probeMindMapBoxSelect() {
     var studyController = getStudyController();
-    if (!studyController || typeof MindMapBoxSelectController === 'undefined') {
-      return false;
-    }
+    if (!studyController || typeof MindMapBoxSelectController === 'undefined') return false;
 
     var ok = MindMapBoxSelectController.startCalibration(studyController);
     refreshDebugPanel();
@@ -29,9 +27,7 @@ function documentPanDebugFeature(ctx) {
 
   function toggleMindMapBoxSelect() {
     var studyController = getStudyController();
-    if (!studyController || typeof MindMapBoxSelectController === 'undefined') {
-      return false;
-    }
+    if (!studyController || typeof MindMapBoxSelectController === 'undefined') return false;
 
     var ok = MindMapBoxSelectController.toggleBoxSelectMode(studyController);
     refreshDebugPanel();

@@ -25,7 +25,8 @@ function panelEventFeature(ctx) {
       if (!ShortcutController.clearAllPersistedConfig()) return;
       ShortcutController.restorePersistedBindings();
       PanGateController.resetConfig();
-      EventInterceptor.syncGate();
+      EventInterceptor.stop();
+      if (typeof MindMapBoxSelectController !== 'undefined') MindMapBoxSelectController.syncPanGate('panel.resetConfig');
       if (ctx.panel) { ctx.panel.refreshShortcutBindings(); ctx.panel.refreshDebug(); }
       var sc = Application.sharedInstance().studyController(self.window);
       if (sc) sc.refreshAddonCommands();

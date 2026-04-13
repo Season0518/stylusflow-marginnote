@@ -21,6 +21,13 @@ function createDebugContainer(config) {
   var expandedIndices = {};
   var debugData = null;
 
+  function getStudyController() {
+    try {
+      return Application.sharedInstance().studyController(addon.window);
+    } catch (e) {}
+    return null;
+  }
+
   function syncInterceptButton() {
     if (EventInterceptor.isActive()) {
       built.interceptBtn.setTitleForState(Strings.debug.interceptStop, 0);
@@ -33,7 +40,7 @@ function createDebugContainer(config) {
 
   function syncMindMapBoxButtons() {
     if (typeof MindMapBoxSelectController === 'undefined') return;
-    var state = MindMapBoxSelectController.getDebugState();
+    var state = MindMapBoxSelectController.getDebugState(getStudyController());
 
     built.mindMapBoxProbeBtn.setTitleForState(Strings.debug.mindMapBoxProbe, 0);
     built.mindMapBoxProbeBtn.backgroundColor = UIColor.colorWithWhiteAlpha(0.5, 1);
@@ -41,13 +48,12 @@ function createDebugContainer(config) {
     if (state.modeActive) {
       built.mindMapBoxModeBtn.setTitleForState(Strings.debug.mindMapBoxModeOff, 0);
       built.mindMapBoxModeBtn.backgroundColor = UIColor.colorWithRedGreenBlueAlpha(0.9, 0.3, 0.2, 1);
-      return;
+    } else {
+      built.mindMapBoxModeBtn.setTitleForState(Strings.debug.mindMapBoxModeOn, 0);
+      built.mindMapBoxModeBtn.backgroundColor = state.calibrated
+        ? UIColor.colorWithRedGreenBlueAlpha(0.2, 0.7, 0.45, 1)
+        : UIColor.colorWithWhiteAlpha(0.4, 1);
     }
-
-    built.mindMapBoxModeBtn.setTitleForState(Strings.debug.mindMapBoxModeOn, 0);
-    built.mindMapBoxModeBtn.backgroundColor = state.calibrated
-      ? UIColor.colorWithRedGreenBlueAlpha(0.2, 0.7, 0.45, 1)
-      : UIColor.colorWithWhiteAlpha(0.4, 1);
   }
 
   function _applyLiveFields(obj) {
@@ -82,7 +88,7 @@ function createDebugContainer(config) {
     if (debugData) _applyLiveFields(debugData);
     UIViewTree.clearSubviews(scroll);
     syncInterceptButton();
-    syncMindMapBoxButtons();
+    if (!pane.hidden) syncMindMapBoxButtons();
 
     if (!debugData) {
       var lbl = new UILabel({ x: 0, y: 20, width: panelWidth, height: 30 });

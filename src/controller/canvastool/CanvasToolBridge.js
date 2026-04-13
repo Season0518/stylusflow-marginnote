@@ -1,9 +1,17 @@
 // iOS 平台实现：定位 CanvasToolPicker 并激活工具
 const CanvasToolBridge = (function () {
   var PICKER_CLASS = 'CanvasToolPicker';
+  var _cachedPicker = null;
+  var _cachedWindow = null;
 
   function find(rootWindow) {
-    return UIViewTree.findNodeByClass(rootWindow, PICKER_CLASS);
+    if (_cachedPicker && _cachedWindow === rootWindow) {
+      try { if (_cachedPicker.superview) return _cachedPicker; } catch (e) {}
+    }
+    var picker = UIViewTree.findNodeByClass(rootWindow, PICKER_CLASS);
+    _cachedPicker = picker;
+    _cachedWindow = rootWindow;
+    return picker;
   }
 
   function detectAllTools(picker) {

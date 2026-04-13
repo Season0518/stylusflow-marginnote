@@ -22,6 +22,7 @@ JSB.require('controller/MindMapBoxSelectController');
 JSB.require('controller/pangate/PanGateConstants');
 JSB.require('controller/pangate/PanGateStorage');
 JSB.require('controller/pangate/PanGateBindings');
+JSB.require('controller/pangate/PanGateHttpSignal');
 JSB.require('controller/PanGateController');
 JSB.require('controller/pangate/PanGesturePool');
 JSB.require('controller/pangate/EventInterceptor');
@@ -34,6 +35,7 @@ JSB.require('ui/components/base/KVRow');
 // ui/components/shortcuts
 JSB.require('ui/components/shortcuts/BindingRow');
 JSB.require('ui/components/shortcuts/SectionHeader');
+JSB.require('ui/components/shortcuts/ToggleRow');
 JSB.require('ui/components/shortcuts/EditorModal');
 // ui/components/debug
 JSB.require('ui/components/debug/ToolRow');

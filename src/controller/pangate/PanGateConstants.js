@@ -2,6 +2,7 @@
 // 依赖 ShortcutConstants（FLAGS.OPTION）
 const PanGateConstants = Object.freeze({
   STORAGE_KEY:           'stylusflow.pangate.config.v1',
+  HTTP_PORT_KEY:         'stylusflow.pangate.http.port',
   DEFAULT_EXPIRED_MS:    800,
   MIN_EXPIRED_MS:        10,
   MAX_EXPIRED_MS:        5000,

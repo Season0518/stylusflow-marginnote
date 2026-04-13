@@ -1,11 +1,14 @@
 {
   "name": "stylusflow",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "private": true,
   "license": "GPL-3.0-only",
   "scripts": {
     "build": "node scripts/build-release.js",
     "dev": "cd src && zip -r -q ../stylusflow-dev.mnaddon .",
+    "test:swift": "swiftc -typecheck scripts/stylusflow-companion.swift",
+    "build:companion": "mkdir -p dist/companion && swiftc scripts/stylusflow-companion.swift -O -o dist/companion/stylusflow-companion",
+    "listen:space-http": "CLANG_MODULE_CACHE_PATH=/tmp/stylusflow-swift-module-cache swift scripts/stylusflow-companion.swift",
     "version": "node scripts/bump-version.js",
     "version:patch": "node scripts/bump-version.js patch",
     "version:minor": "node scripts/bump-version.js minor",
