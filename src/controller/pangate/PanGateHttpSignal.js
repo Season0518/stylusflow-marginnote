@@ -1,10 +1,11 @@
 // PanGate HTTP probe: Space trigger -> loopback listener
 const PanGateHttpSignal = (function () {
   var HOST = '127.0.0.1';
-  var PORT = 17364;
   var PATH = '/space';
   var MAX_SCAN = 1200;
   var _inFlight = false;
+  var _cachedPort = null;
+  var _lastPortErrorReason = '';
 
   function _isNil(value) {
     if (typeof value === 'undefined' || value === null) return true;
@@ -144,6 +145,102 @@ const PanGateHttpSignal = (function () {
     return _isSuccessStatus(status) && !_errorDescription(error) && _dataLength(data) === 4;
   }
 
+  function _defaultsNumber(ud, key) {
+    var raw = null;
+    try { raw = ud.objectForKey(key); } catch (e) {}
+    if (_isNil(raw)) return { ok: false, reason: 'missing' };
+
+    var value = Number(raw);
+    try {
+      if (isNaN(value) && raw && typeof raw.doubleValue === 'function') value = Number(raw.doubleValue());
+      if (isNaN(value) && raw && typeof raw.integerValue === 'function') value = Number(raw.integerValue());
+      if (isNaN(value)) value = Number(_safeString(raw));
+    } catch (e2) {}
+
+    return isNaN(value)
+      ? { ok: false, reason: 'not-number', raw: _safeString(raw) }
+      : { ok: true, value: value, raw: _safeString(raw) };
+  }
+
+  function _readPublishedPort() {
+    try {
+      var ud = NSUserDefaults.standardUserDefaults();
+      if (ud && typeof ud.synchronize === 'function') ud.synchronize();
+
+      var portValue = _defaultsNumber(ud, PanGateConstants.HTTP_PORT_KEY);
+      if (!portValue.ok) {
+        return { ok: false, reason: 'companion-port-' + portValue.reason, key: PanGateConstants.HTTP_PORT_KEY };
+      }
+
+      var port = Math.floor(portValue.value);
+      if (port < 1024 || port > 65535) {
+        return { ok: false, reason: 'companion-port-invalid', key: PanGateConstants.HTTP_PORT_KEY, port: port };
+      }
+
+      return { ok: true, port: port };
+    } catch (e) {
+      return { ok: false, reason: 'companion-port-read-error', key: PanGateConstants.HTTP_PORT_KEY, error: _safeString(e) };
+    }
+  }
+
+  function _refreshPublishedPort(reason, silent) {
+    var result = _readPublishedPort();
+    if (result.ok) {
+      var previousPort = _cachedPort;
+      _cachedPort = result.port;
+      _lastPortErrorReason = '';
+      if (!silent && previousPort !== result.port) {
+        try {
+          console.log(
+            '[StylusFlow PanGateHTTP] port refreshed reason=' + _safeString(reason) +
+            ' previous=' + (previousPort === null ? '' : previousPort) +
+            ' port=' + result.port
+          );
+        } catch (e) {}
+      }
+      return { ok: true, port: result.port, source: 'defaults' };
+    }
+
+    _cachedPort = null;
+    if (!silent) _logPortError(result);
+    return result;
+  }
+
+  function _requestPort() {
+    if (_cachedPort !== null) return { ok: true, port: _cachedPort, source: 'cache' };
+    return _refreshPublishedPort('request', false);
+  }
+
+  function _logPortError(result) {
+    if (!result || result.ok) return;
+    var reason = result.reason || 'unknown';
+    if (_lastPortErrorReason === reason) return;
+    _lastPortErrorReason = reason;
+    try {
+      console.log(
+        '[StylusFlow PanGateHTTP] error reason=' + reason +
+        ' key=' + (result.key || '') +
+        (typeof result.port === 'number' ? ' port=' + result.port : '') +
+        (result.error ? ' error=' + result.error : '')
+      );
+    } catch (e) {}
+  }
+
+  function _bindingPayload() {
+    var trigger = PanGateBindings.getTriggerBinding();
+    var stop = PanGateBindings.getStopBinding();
+    return {
+      triggerInput: trigger ? trigger.input : '',
+      triggerFlags: trigger ? trigger.flags : 0,
+      triggerDisplay: trigger ? trigger.display : '',
+      hasStop: stop ? 1 : 0,
+      stopInput: stop ? stop.input : '',
+      stopFlags: stop ? stop.flags : 0,
+      stopDisplay: stop ? stop.display : '',
+      expiredMs: PanGateBindings.getExpiredMs(),
+    };
+  }
+
   function _query(params) {
     var parts = [];
     for (var key in params) {
@@ -158,6 +255,10 @@ const PanGateHttpSignal = (function () {
     return normalized === ' ' || String(input || '').toLowerCase() === 'space';
   }
 
+  function _isTransportFailure(status, error) {
+    return _safeString(status).length === 0 || !!_errorDescription(error);
+  }
+
   function notifySpace(input, flags, rootWindow) {
     if (!_isSpace(input)) return false;
     if (_inFlight) return false;
@@ -168,7 +269,16 @@ const PanGateHttpSignal = (function () {
 
     var createdAt = Date.now();
     var focus = detectFocusedTextInput(rootWindow);
-    var url = 'http://' + HOST + ':' + PORT + PATH + '?' + _query({
+    var published = _requestPort();
+    if (!published.ok) {
+      _logPortError(published);
+      return false;
+    }
+    _lastPortErrorReason = '';
+
+    var port = published.port;
+    var bindings = _bindingPayload();
+    var url = 'http://' + HOST + ':' + port + PATH + '?' + _query({
       createdAt: createdAt,
       source: 'mn4',
       event: 'keydown',
@@ -179,6 +289,14 @@ const PanGateHttpSignal = (function () {
       pluginFocusClass: focus.className,
       pluginFocusReason: focus.reason,
       pluginChecked: focus.checked,
+      triggerInput: bindings.triggerInput,
+      triggerFlags: bindings.triggerFlags,
+      triggerDisplay: bindings.triggerDisplay,
+      hasStop: bindings.hasStop,
+      stopInput: bindings.stopInput,
+      stopFlags: bindings.stopFlags,
+      stopDisplay: bindings.stopDisplay,
+      expiredMs: bindings.expiredMs,
     });
 
     try {
@@ -191,10 +309,14 @@ const PanGateHttpSignal = (function () {
       }
       console.log(
         '[StylusFlow PanGateHTTP] Space notify begin createdAt=' + createdAt +
+        ' port=' + port +
+        ' portSource=' + published.source +
         ' pluginTextInput=' + focus.inTextInput +
         ' class=' + focus.className +
         ' reason=' + focus.reason +
-        ' checked=' + focus.checked
+        ' checked=' + focus.checked +
+        ' trigger=' + bindings.triggerDisplay +
+        ' stop=' + bindings.stopDisplay
       );
       _inFlight = true;
       NSURLConnection.sendAsynchronousRequestQueueCompletionHandler(
@@ -204,23 +326,32 @@ const PanGateHttpSignal = (function () {
           var endedAt = Date.now();
           var status = _statusCode(response);
           var pon = _isPonResponse(status, data, error);
+          var shouldRefreshPort = _isTransportFailure(status, error);
           console.log(
             '[StylusFlow PanGateHTTP] Space notify end elapsedMs=' + (endedAt - createdAt) +
             ' status=' + status +
             ' dataLength=' + _dataLength(data) +
             ' pon=' + pon +
             ' inFlight=false' +
+            ' refreshPort=' + shouldRefreshPort +
             ' error=' + _errorDescription(error)
           );
+          if (shouldRefreshPort) _refreshPublishedPort('transport-failure', false);
           _inFlight = false;
         }
       );
       return true;
     } catch (e2) {
       _inFlight = false;
+      _cachedPort = null;
+      _refreshPublishedPort('send-throw', false);
       try { console.log('[StylusFlow PanGateHTTP] send failed error=' + _safeString(e2)); } catch (e3) {}
       return false;
     }
+  }
+
+  function init() {
+    _refreshPublishedPort('load', true);
   }
 
   function reset(reason) {
@@ -232,6 +363,7 @@ const PanGateHttpSignal = (function () {
   }
 
   return {
+    init: init,
     notifySpace: notifySpace,
     detectFocusedTextInput: detectFocusedTextInput,
     reset: reset,

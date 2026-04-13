@@ -5,9 +5,13 @@ import Foundation
 
 let bindHost = "127.0.0.1"
 let spaceKeyCode: Int64 = 49
+let flagShift: Int64 = 1 << 17
+let flagControl: Int64 = 1 << 18
+let flagOption: Int64 = 1 << 19
+let flagCommand: Int64 = 1 << 20
 
 if CommandLine.arguments.contains("--help") {
-  print("Usage: swift scripts/space-http-listener.swift [--port 17364]")
+  print("Usage: swift scripts/space-http-listener.swift [--port 17364] [--mn-domain QReader.MarginStudy.easy]")
   print("Listens on 127.0.0.1, waits for Space keyup, then replies pon to MarginNote.")
   exit(0)
 }
@@ -19,8 +23,24 @@ func argumentValue(after flag: String) -> String? {
   return CommandLine.arguments[next]
 }
 
-let port = UInt16(argumentValue(after: "--port") ?? "") ?? 17364
+func argumentValues(after flag: String) -> [String] {
+  var values: [String] = []
+  for index in CommandLine.arguments.indices where CommandLine.arguments[index] == flag {
+    let next = CommandLine.arguments.index(after: index)
+    if next < CommandLine.arguments.endIndex {
+      values.append(CommandLine.arguments[next])
+    }
+  }
+  return values
+}
+
+let requestedPort = UInt16(argumentValue(after: "--port") ?? "") ?? 17364
 let keyupWaitSeconds: DispatchTimeInterval = .seconds(60)
+let portDefaultsKey = "stylusflow.pangate.http.port"
+let portUpdatedAtDefaultsKey = "stylusflow.pangate.http.port.updatedAt"
+let panGateConfigDefaultsKey = "stylusflow.pangate.config.v1"
+let defaultMarginNoteDomains = ["QReader.MarginStudy.easy", "QReader.MarginStudy"]
+var signalSources: [DispatchSourceSignal] = []
 
 struct FocusSnapshot {
   let trusted: Bool
@@ -36,6 +56,14 @@ final class PendingSpace {
   let receivedAt: Int64
   let pluginTextInput: String
   let pluginFocusClass: String
+  let triggerInput: String
+  let triggerFlags: String
+  let triggerDisplay: String
+  let hasStop: String
+  let stopInput: String
+  let stopFlags: String
+  let stopDisplay: String
+  let expiredMs: String
   let axRole: String
   let axReason: String
   let semaphore = DispatchSemaphore(value: 0)
@@ -47,6 +75,14 @@ final class PendingSpace {
     receivedAt: Int64,
     pluginTextInput: String,
     pluginFocusClass: String,
+    triggerInput: String,
+    triggerFlags: String,
+    triggerDisplay: String,
+    hasStop: String,
+    stopInput: String,
+    stopFlags: String,
+    stopDisplay: String,
+    expiredMs: String,
     axRole: String,
     axReason: String
   ) {
@@ -54,6 +90,14 @@ final class PendingSpace {
     self.receivedAt = receivedAt
     self.pluginTextInput = pluginTextInput
     self.pluginFocusClass = pluginFocusClass
+    self.triggerInput = triggerInput
+    self.triggerFlags = triggerFlags
+    self.triggerDisplay = triggerDisplay
+    self.hasStop = hasStop
+    self.stopInput = stopInput
+    self.stopFlags = stopFlags
+    self.stopDisplay = stopDisplay
+    self.expiredMs = expiredMs
     self.axRole = axRole
     self.axReason = axReason
   }
@@ -79,7 +123,6 @@ final class KeyupState {
     event?.keyCode = keyCode
     event?.keyupAt = keyupAt
     lock.unlock()
-    event?.semaphore.signal()
     return event
   }
 
@@ -97,6 +140,167 @@ var keyupTapAvailable = false
 
 func nowMs() -> Int64 {
   Int64(Date().timeIntervalSince1970 * 1000)
+}
+
+func marginNoteDomains() -> [String] {
+  var out = argumentValues(after: "--mn-domain")
+  let env = ProcessInfo.processInfo.environment["STYLUSFLOW_MN_DOMAIN"] ?? ""
+  for item in env.split(separator: ",") {
+    let trimmed = item.trimmingCharacters(in: .whitespacesAndNewlines)
+    if !trimmed.isEmpty { out.append(trimmed) }
+  }
+  if out.isEmpty { out = defaultMarginNoteDomains }
+
+  var seen = Set<String>()
+  return out.filter { domain in
+    if seen.contains(domain) { return false }
+    seen.insert(domain)
+    return true
+  }
+}
+
+func writeContainerPreference(domain: String, port: UInt16, updatedAt: Int64) -> Bool {
+  let fm = FileManager.default
+  let home = fm.homeDirectoryForCurrentUser.path
+  let prefsDir = "\(home)/Library/Containers/\(domain)/Data/Library/Preferences"
+  guard fm.fileExists(atPath: prefsDir) else { return false }
+  let path = "\(prefsDir)/\(domain).plist"
+  let dict = NSMutableDictionary(contentsOfFile: path) ?? NSMutableDictionary()
+  dict[portDefaultsKey] = Int(port)
+  dict[portUpdatedAtDefaultsKey] = updatedAt
+  return dict.write(toFile: path, atomically: true)
+}
+
+func readContainerPreferenceValue(domain: String, key: String) -> Any? {
+  let fm = FileManager.default
+  let home = fm.homeDirectoryForCurrentUser.path
+  let path = "\(home)/Library/Containers/\(domain)/Data/Library/Preferences/\(domain).plist"
+  guard fm.fileExists(atPath: path),
+        let dict = NSDictionary(contentsOfFile: path) else { return nil }
+  return dict[key]
+}
+
+func readContainerPreferenceString(domain: String, key: String) -> String? {
+  readContainerPreferenceValue(domain: domain, key: key) as? String
+}
+
+func portFromValue(_ value: Any?) -> UInt16? {
+  guard let value = value else { return nil }
+
+  let intValue: Int?
+  switch value {
+  case let number as NSNumber:
+    intValue = number.intValue
+  case let string as String:
+    intValue = Int(string.trimmingCharacters(in: .whitespacesAndNewlines))
+  case let int as Int:
+    intValue = int
+  case let int64 as Int64:
+    intValue = Int(int64)
+  default:
+    intValue = Int(String(describing: value))
+  }
+
+  guard let port = intValue, port >= 1024, port <= 65535 else { return nil }
+  return UInt16(port)
+}
+
+func readPublishedPort() -> (port: UInt16, source: String)? {
+  for domain in marginNoteDomains() {
+    if let port = portFromValue(readContainerPreferenceValue(domain: domain, key: portDefaultsKey)) {
+      return (port, "container:\(domain)")
+    }
+    if let port = portFromValue(UserDefaults(suiteName: domain)?.object(forKey: portDefaultsKey)) {
+      return (port, "suite:\(domain)")
+    }
+  }
+
+  if let port = portFromValue(UserDefaults.standard.object(forKey: portDefaultsKey)) {
+    return (port, "standard")
+  }
+  return nil
+}
+
+func summarizePanGateConfig(_ text: String) -> String {
+  guard let data = text.data(using: .utf8),
+        let json = try? JSONSerialization.jsonObject(with: data),
+        let dict = json as? [String: Any] else {
+    return "parse=false"
+  }
+
+  let triggerInput = String(describing: dict["triggerInput"] ?? "")
+  let triggerFlags = String(describing: dict["triggerFlags"] ?? "")
+  let hasStop = String(describing: dict["hasStopBinding"] ?? "")
+  let stopInput = String(describing: dict["stopInput"] ?? "")
+  let stopFlags = String(describing: dict["stopFlags"] ?? "")
+  let expiredMs = String(describing: dict["expiredMs"] ?? "")
+  return "parse=true triggerInput=\(safeLog(triggerInput)) triggerFlags=\(triggerFlags) hasStop=\(hasStop) stopInput=\(safeLog(stopInput)) stopFlags=\(stopFlags) expiredMs=\(expiredMs)"
+}
+
+func logStoredPanGateConfig() {
+  for domain in marginNoteDomains() {
+    if let text = readContainerPreferenceString(domain: domain, key: panGateConfigDefaultsKey) {
+      print("[SpaceHTTPListener] configRead ok=true source=container domain=\(domain) \(summarizePanGateConfig(text))")
+      fflush(stdout)
+      return
+    }
+    if let text = UserDefaults(suiteName: domain)?.string(forKey: panGateConfigDefaultsKey) {
+      print("[SpaceHTTPListener] configRead ok=true source=suite domain=\(domain) \(summarizePanGateConfig(text))")
+      fflush(stdout)
+      return
+    }
+  }
+  print("[SpaceHTTPListener] configRead ok=false key=\(panGateConfigDefaultsKey) domains=\(marginNoteDomains().joined(separator: ","))")
+  fflush(stdout)
+}
+
+func writePublishedPort(_ port: UInt16) -> (standardOK: Bool, suiteResults: [String], containerResults: [String], containerOK: Bool) {
+  let updatedAt = nowMs()
+  UserDefaults.standard.set(Int(port), forKey: portDefaultsKey)
+  UserDefaults.standard.set(updatedAt, forKey: portUpdatedAtDefaultsKey)
+  let standardOK = UserDefaults.standard.synchronize()
+
+  var suiteResults: [String] = []
+  var containerResults: [String] = []
+  var containerOK = false
+  for domain in marginNoteDomains() {
+    if let defaults = UserDefaults(suiteName: domain) {
+      defaults.set(Int(port), forKey: portDefaultsKey)
+      defaults.set(updatedAt, forKey: portUpdatedAtDefaultsKey)
+      suiteResults.append("\(domain):\(defaults.synchronize())")
+    } else {
+      suiteResults.append("\(domain):false")
+    }
+    let containerWriteOK = writeContainerPreference(domain: domain, port: port, updatedAt: updatedAt)
+    containerOK = containerOK || containerWriteOK
+    containerResults.append("\(domain):\(containerWriteOK)")
+  }
+
+  return (standardOK, suiteResults, containerResults, containerOK)
+}
+
+func publishPort(_ port: UInt16) {
+  let result = writePublishedPort(port)
+
+  print("[SpaceHTTPListener] publishPort requested=\(requestedPort) selected=\(port) key=\(portDefaultsKey) updatedAtKey=\(portUpdatedAtDefaultsKey) standard=\(result.standardOK) suites=\(result.suiteResults.joined(separator: ",")) containers=\(result.containerResults.joined(separator: ","))")
+  if !result.containerOK {
+    print("[SpaceHTTPListener] publishPort error=container-preference-write-failed key=\(portDefaultsKey) domains=\(marginNoteDomains().joined(separator: ","))")
+  }
+  fflush(stdout)
+}
+
+func installSignalCleanup() {
+  for signalNumber in [SIGINT, SIGTERM] {
+    signal(signalNumber, SIG_IGN)
+    let source = DispatchSource.makeSignalSource(signal: signalNumber, queue: DispatchQueue.global(qos: .utility))
+    source.setEventHandler {
+      print("[SpaceHTTPListener] signal=\(signalNumber) stopping=true")
+      fflush(stdout)
+      exit(0)
+    }
+    source.resume()
+    signalSources.append(source)
+  }
 }
 
 func jsonString(_ value: String) -> String {
@@ -158,6 +362,112 @@ func queryItems(from target: String) -> [String: String] {
 
 func path(from target: String) -> String {
   URLComponents(string: "http://localhost\(target)")?.path ?? target
+}
+
+func int64Value(_ text: String) -> Int64 {
+  Int64(text.trimmingCharacters(in: .whitespacesAndNewlines)) ?? 0
+}
+
+func boolValue(_ text: String) -> Bool {
+  let normalized = text.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+  return normalized == "1" || normalized == "true" || normalized == "yes"
+}
+
+func cgFlags(from value: Int64) -> CGEventFlags {
+  var flags = CGEventFlags()
+  if (value & flagShift) != 0 { flags.insert(.maskShift) }
+  if (value & flagControl) != 0 { flags.insert(.maskControl) }
+  if (value & flagOption) != 0 { flags.insert(.maskAlternate) }
+  if (value & flagCommand) != 0 { flags.insert(.maskCommand) }
+  return flags
+}
+
+func keyCodeForInput(_ input: String) -> CGKeyCode? {
+  if input == " " { return 49 }
+
+  let special: [String: CGKeyCode] = [
+    "UIKeyInputUpArrow": 126,
+    "UIKeyInputDownArrow": 125,
+    "UIKeyInputLeftArrow": 123,
+    "UIKeyInputRightArrow": 124,
+    "UIKeyInputEscape": 53,
+  ]
+  if let code = special[input] { return code }
+
+  let key = input.lowercased()
+  let map: [String: CGKeyCode] = [
+    "a": 0, "s": 1, "d": 2, "f": 3, "h": 4, "g": 5, "z": 6, "x": 7,
+    "c": 8, "v": 9, "b": 11, "q": 12, "w": 13, "e": 14, "r": 15,
+    "y": 16, "t": 17, "1": 18, "2": 19, "3": 20, "4": 21, "6": 22,
+    "5": 23, "=": 24, "9": 25, "7": 26, "-": 27, "8": 28, "0": 29,
+    "]": 30, "o": 31, "u": 32, "[": 33, "i": 34, "p": 35, "l": 37,
+    "j": 38, "'": 39, "k": 40, ";": 41, "\\": 42, ",": 43, "/": 44,
+    "n": 45, "m": 46, ".": 47, "`": 50,
+  ]
+  return map[key]
+}
+
+func primaryModifierKeyCode(from flags: Int64) -> CGKeyCode? {
+  if (flags & flagCommand) != 0 { return 55 }
+  if (flags & flagOption) != 0 { return 58 }
+  if (flags & flagControl) != 0 { return 59 }
+  if (flags & flagShift) != 0 { return 56 }
+  return nil
+}
+
+func postKeyEvent(keyCode: CGKeyCode, keyDown: Bool, flags: CGEventFlags) -> Bool {
+  guard let event = CGEvent(keyboardEventSource: nil, virtualKey: keyCode, keyDown: keyDown) else {
+    return false
+  }
+  event.flags = flags
+  event.post(tap: .cghidEventTap)
+  return true
+}
+
+func postModifierEvent(keyCode: CGKeyCode, flags: CGEventFlags) -> Bool {
+  guard let event = CGEvent(keyboardEventSource: nil, virtualKey: keyCode, keyDown: true) else {
+    return false
+  }
+  event.flags = flags
+  event.type = .flagsChanged
+  event.post(tap: .cghidEventTap)
+  return true
+}
+
+func emitStopEvent(_ pending: PendingSpace) -> (ok: Bool, reason: String, keyCode: String, flags: Int64) {
+  guard boolValue(pending.hasStop) else {
+    return (false, "no-stop-binding", "", 0)
+  }
+
+  let stopFlags = int64Value(pending.stopFlags)
+  let eventFlags = cgFlags(from: stopFlags)
+
+  if pending.stopInput.isEmpty {
+    guard let modifierKeyCode = primaryModifierKeyCode(from: stopFlags) else {
+      return (false, "invalid-modifier-stop", "", stopFlags)
+    }
+    let downOK = postModifierEvent(keyCode: modifierKeyCode, flags: eventFlags)
+    usleep(1_000)
+    let upOK = postModifierEvent(keyCode: modifierKeyCode, flags: [])
+    return (downOK && upOK, downOK && upOK ? "modifier-only" : "post-failed", String(modifierKeyCode), stopFlags)
+  }
+
+  guard let keyCode = keyCodeForInput(pending.stopInput) else {
+    return (false, "unsupported-stop-input", "", stopFlags)
+  }
+
+  if stopFlags != 0, let modifierKeyCode = primaryModifierKeyCode(from: stopFlags) {
+    _ = postModifierEvent(keyCode: modifierKeyCode, flags: eventFlags)
+    usleep(1_000)
+  }
+  let downOK = postKeyEvent(keyCode: keyCode, keyDown: true, flags: eventFlags)
+  usleep(1_000)
+  let upOK = postKeyEvent(keyCode: keyCode, keyDown: false, flags: eventFlags)
+  if stopFlags != 0, let modifierKeyCode = primaryModifierKeyCode(from: stopFlags) {
+    usleep(1_000)
+    _ = postModifierEvent(keyCode: modifierKeyCode, flags: [])
+  }
+  return (downOK && upOK, downOK && upOK ? "key" : "post-failed", String(keyCode), stopFlags)
 }
 
 func axString(_ element: AXUIElement, _ attribute: String) -> String {
@@ -253,6 +563,14 @@ func handleClient(_ clientFD: Int32) {
   let event = items["event"] ?? ""
   let pluginTextInput = items["pluginTextInput"] ?? ""
   let pluginFocusClass = items["pluginFocusClass"] ?? ""
+  let triggerInput = items["triggerInput"] ?? ""
+  let triggerFlags = items["triggerFlags"] ?? ""
+  let triggerDisplay = items["triggerDisplay"] ?? ""
+  let hasStop = items["hasStop"] ?? ""
+  let stopInput = items["stopInput"] ?? ""
+  let stopFlags = items["stopFlags"] ?? ""
+  let stopDisplay = items["stopDisplay"] ?? ""
+  let expiredMs = items["expiredMs"] ?? ""
   let axTextText = focus.isTextInput.map(String.init) ?? "nil"
   let valid = isValidSpaceKeydown(path: requestPath, items: items, focus: focus)
 
@@ -273,12 +591,20 @@ func handleClient(_ clientFD: Int32) {
       receivedAt: receivedAt,
       pluginTextInput: pluginTextInput,
       pluginFocusClass: pluginFocusClass,
+      triggerInput: triggerInput,
+      triggerFlags: triggerFlags,
+      triggerDisplay: triggerDisplay,
+      hasStop: hasStop,
+      stopInput: stopInput,
+      stopFlags: stopFlags,
+      stopDisplay: stopDisplay,
+      expiredMs: expiredMs,
       axRole: focus.role,
       axReason: focus.reason
     )
     let wasIdle = keyupState.arm(pending)
     print(
-      "[SpaceHTTPListener] armed path=\(requestPath) responsePending=true arm=\(wasIdle ? "new" : "replace") tapAvailable=\(keyupTapAvailable) receivedAt=\(receivedAt) createdAt=\(createdAt.map(String.init) ?? "nil") deltaMs=\(deltaMs.map(String.init) ?? "nil") pluginTextInput=\(pluginTextInput) axTextInput=\(axTextText) trusted=\(focus.trusted) role=\(focus.role) reason=\(focus.reason)"
+      "[SpaceHTTPListener] armed path=\(requestPath) responsePending=true arm=\(wasIdle ? "new" : "replace") tapAvailable=\(keyupTapAvailable) receivedAt=\(receivedAt) createdAt=\(createdAt.map(String.init) ?? "nil") deltaMs=\(deltaMs.map(String.init) ?? "nil") pluginTextInput=\(pluginTextInput) axTextInput=\(axTextText) trigger=\(safeLog(triggerDisplay)) triggerInput=\(safeLog(triggerInput)) triggerFlags=\(triggerFlags) hasStop=\(hasStop) stop=\(safeLog(stopDisplay)) stopInput=\(safeLog(stopInput)) stopFlags=\(stopFlags) expiredMs=\(expiredMs) trusted=\(focus.trusted) role=\(focus.role) reason=\(focus.reason)"
     )
     fflush(stdout)
 
@@ -318,10 +644,13 @@ let keyupCallback: CGEventTapCallBack = { _, type, event, _ in
     let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
     let keyupAt = nowMs()
     if let armed = keyupState.completeSpaceKeyup(keyCode: keyCode, keyupAt: keyupAt) {
+      let stopResult = emitStopEvent(armed)
+      let stopEmittedAt = nowMs()
       print(
-        "[SpaceHTTPListener] keyup output keyCode=\(keyCode) keyupAt=\(keyupAt) createdAt=\(armed.createdAt.map(String.init) ?? "nil") fromPluginMs=\(armed.createdAt.map { String(keyupAt - $0) } ?? "nil") fromListenerMs=\(keyupAt - armed.receivedAt) pluginTextInput=\(armed.pluginTextInput) pluginFocusClass=\(armed.pluginFocusClass) axRole=\(armed.axRole) axReason=\(armed.axReason) future=emit-keyup-stop-key-http-stop"
+        "[SpaceHTTPListener] keyup output keyCode=\(keyCode) keyupAt=\(keyupAt) createdAt=\(armed.createdAt.map(String.init) ?? "nil") fromPluginMs=\(armed.createdAt.map { String(keyupAt - $0) } ?? "nil") fromListenerMs=\(keyupAt - armed.receivedAt) pluginTextInput=\(armed.pluginTextInput) pluginFocusClass=\(armed.pluginFocusClass) trigger=\(safeLog(armed.triggerDisplay)) triggerInput=\(safeLog(armed.triggerInput)) triggerFlags=\(armed.triggerFlags) hasStop=\(armed.hasStop) stop=\(safeLog(armed.stopDisplay)) stopInput=\(safeLog(armed.stopInput)) stopFlags=\(armed.stopFlags) expiredMs=\(armed.expiredMs) stopEmitOK=\(stopResult.ok) stopEmitReason=\(stopResult.reason) stopEmitKeyCode=\(stopResult.keyCode) stopEmitFlags=\(stopResult.flags) stopEmittedAt=\(stopEmittedAt) stopEmitDelayMs=\(stopEmittedAt - keyupAt) axRole=\(armed.axRole) axReason=\(armed.axReason)"
       )
       fflush(stdout)
+      armed.semaphore.signal()
     }
   }
   return Unmanaged.passUnretained(event)
@@ -351,12 +680,9 @@ func installKeyupTap() -> CFMachPort? {
   return eventTap
 }
 
-func runHTTPServer() {
+func createListeningSocket(port: UInt16) -> Int32? {
   let serverFD = Darwin.socket(AF_INET, SOCK_STREAM, 0)
-  guard serverFD >= 0 else {
-    perror("socket")
-    exit(1)
-  }
+  guard serverFD >= 0 else { return nil }
 
   var reuse: Int32 = 1
   setsockopt(serverFD, SOL_SOCKET, SO_REUSEADDR, &reuse, socklen_t(MemoryLayout<Int32>.size))
@@ -374,18 +700,66 @@ func runHTTPServer() {
   }
 
   guard bindResult == 0 else {
-    perror("bind")
     Darwin.close(serverFD)
-    exit(1)
+    return nil
   }
 
   guard Darwin.listen(serverFD, SOMAXCONN) == 0 else {
-    perror("listen")
     Darwin.close(serverFD)
-    exit(1)
+    return nil
   }
 
-  print("[SpaceHTTPListener] listening host=\(bindHost) port=\(port) accessibilityTrusted=\(AXIsProcessTrusted())")
+  return serverFD
+}
+
+func bindFirstAvailablePort(startPort: UInt16, attempts: Int = 50, skipPort: UInt16? = nil) -> (fd: Int32, port: UInt16) {
+  let start = Int(startPort)
+  for offset in 0..<attempts {
+    let candidate = start + offset
+    if candidate > 65535 { break }
+    let port = UInt16(candidate)
+    if skipPort == port { continue }
+    if let fd = createListeningSocket(port: port) {
+      return (fd, port)
+    }
+  }
+
+  print("[SpaceHTTPListener] bind failed startPort=\(startPort) attempts=\(attempts)")
+  fflush(stdout)
+  exit(1)
+}
+
+func bindListener() -> (fd: Int32, port: UInt16, publishNeeded: Bool, publishReason: String, publishedSource: String) {
+  let published = readPublishedPort()
+  if let publishedPort = published?.port {
+    if let fd = createListeningSocket(port: publishedPort) {
+      let source = published?.source ?? ""
+      let primaryContainerSource = marginNoteDomains().first.map { "container:\($0)" } ?? ""
+      let shouldPublish = source != primaryContainerSource
+      return (fd, publishedPort, shouldPublish, shouldPublish ? "published-port-source-refresh" : "reuse-published", source)
+    }
+
+    print("[SpaceHTTPListener] publishedPort unavailable port=\(publishedPort) source=\(published?.source ?? "") action=refresh")
+    fflush(stdout)
+    let bound = bindFirstAvailablePort(startPort: publishedPort, skipPort: publishedPort)
+    return (bound.fd, bound.port, true, "published-port-unavailable", published?.source ?? "")
+  }
+
+  let bound = bindFirstAvailablePort(startPort: requestedPort)
+  return (bound.fd, bound.port, true, "published-port-missing", "")
+}
+
+func runHTTPServer() {
+  let bound = bindListener()
+  if bound.publishNeeded {
+    publishPort(bound.port)
+  } else {
+    print("[SpaceHTTPListener] reusePublishedPort port=\(bound.port) source=\(bound.publishedSource)")
+    fflush(stdout)
+  }
+  logStoredPanGateConfig()
+
+  print("[SpaceHTTPListener] listening host=\(bindHost) port=\(bound.port) requestedPort=\(requestedPort) publishNeeded=\(bound.publishNeeded) publishReason=\(bound.publishReason) accessibilityTrusted=\(AXIsProcessTrusted())")
   fflush(stdout)
 
   while true {
@@ -393,7 +767,7 @@ func runHTTPServer() {
     var clientLength = socklen_t(MemoryLayout<sockaddr_storage>.size)
     let clientFD = withUnsafeMutablePointer(to: &clientAddress) { pointer in
       pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) {
-        Darwin.accept(serverFD, $0, &clientLength)
+        Darwin.accept(bound.fd, $0, &clientLength)
       }
     }
 
@@ -408,6 +782,7 @@ func runHTTPServer() {
 }
 
 signal(SIGPIPE, SIG_IGN)
+installSignalCleanup()
 let eventTap = installKeyupTap()
 DispatchQueue.global(qos: .userInitiated).async {
   runHTTPServer()

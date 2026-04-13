@@ -67,7 +67,10 @@ const PanGateController = (function () {
   }
 
   // ── 生命周期 ────────────────────────────────────────────────
-  function init() { PanGateBindings.init(); }
+  function init() {
+    PanGateBindings.init();
+    PanGateHttpSignal.init();
+  }
 
   function resetConfig() {
     PanGateBindings.resetConfig();
