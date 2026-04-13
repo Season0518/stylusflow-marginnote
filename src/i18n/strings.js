@@ -54,8 +54,6 @@ const Strings = Object.freeze({
     mindMapBoxProbe: '标定框选',
     mindMapBoxModeOn: '框选模式',
     mindMapBoxModeOff: '关闭框选',
-    mindMapFreeMoveOn: '自由移动',
-    mindMapFreeMoveOff: '恢复框选',
     mindMapBoxNeedProbe: '请先标定框选',
     interceptStart: '事件拦截',
     interceptStop: '停止拦截',

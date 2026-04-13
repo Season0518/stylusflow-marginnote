@@ -7,9 +7,6 @@ const MindMapBoxSelectController = (function () {
     toggleBoxSelectMode: runtime.toggleBoxSelectMode,
     ensureBoxSelectMode: runtime.ensureBoxSelectMode,
     stopBoxSelectMode: runtime.stopBoxSelectMode,
-    enableFreeMove: runtime.enableFreeMove,
-    restoreBoxSelect: runtime.restoreBoxSelect,
-    toggleFreeMove: runtime.toggleFreeMove,
     syncPanGate: runtime.syncPanGate,
     getDebugState: runtime.getDebugState,
   };

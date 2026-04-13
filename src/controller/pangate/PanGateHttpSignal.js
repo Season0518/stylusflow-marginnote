@@ -5,7 +5,6 @@ const PanGateHttpSignal = (function () {
   var MAX_SCAN = 1200;
   var _inFlight = false;
   var _cachedPort = null;
-  var _lastPortErrorReason = '';
   var _stateListener = null;
 
   function _isNil(value) {
@@ -23,39 +22,6 @@ const PanGateHttpSignal = (function () {
   function _notifyState(reason) {
     if (typeof _stateListener !== 'function') return;
     try { _stateListener(reason); } catch (e) {}
-  }
-
-  function _className(view) {
-    try {
-      if (typeof UIViewTree !== 'undefined') return UIViewTree.getClassName(view);
-    } catch (e) {}
-    try {
-      if (view && typeof view.className === 'function') return String(view.className());
-      if (view && view.className) return String(view.className);
-    } catch (e2) {}
-    return '';
-  }
-
-  function _getSubviews(view) {
-    try {
-      if (typeof UIViewTree !== 'undefined') return UIViewTree.getSubviews(view);
-    } catch (e) {}
-    try {
-      return view && view.subviews ? Array.prototype.slice.call(view.subviews) : [];
-    } catch (e2) {
-      return [];
-    }
-  }
-
-  function _isVisible(view) {
-    try {
-      if (typeof UIViewTree !== 'undefined') return UIViewTree.isVisible(view);
-    } catch (e) {}
-    try {
-      if (!view || view.hidden === true) return false;
-      if (Number(view.alpha || 1) <= 0.01) return false;
-    } catch (e2) {}
-    return true;
   }
 
   function _isFirstResponder(view) {
@@ -80,6 +46,14 @@ const PanGateHttpSignal = (function () {
       name.indexOf('TextInput') >= 0;
   }
 
+  function _getSubviews(view) {
+    try {
+      return view && view.subviews ? Array.prototype.slice.call(view.subviews) : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
   function detectFocusedTextInput(root) {
     if (!root) return { inTextInput: false, className: '', checked: 0, reason: 'no-root' };
 
@@ -89,9 +63,9 @@ const PanGateHttpSignal = (function () {
     while (head < queue.length && checked < MAX_SCAN) {
       var view = queue[head++];
       checked++;
-      if (!view || !_isVisible(view)) continue;
+      if (!view || !UIViewTree.isVisible(view)) continue;
 
-      var className = _className(view);
+      var className = UIViewTree.getClassName(view);
       if (_isFirstResponder(view)) {
         return {
           inTextInput: _isTextInputClass(className),
@@ -154,7 +128,7 @@ const PanGateHttpSignal = (function () {
   function _defaultsNumber(ud, key) {
     var raw = null;
     try { raw = ud.objectForKey(key); } catch (e) {}
-    if (_isNil(raw)) return { ok: false, reason: 'missing' };
+    if (_isNil(raw)) return { ok: false };
 
     var value = Number(raw);
     try {
@@ -163,9 +137,7 @@ const PanGateHttpSignal = (function () {
       if (isNaN(value)) value = Number(_safeString(raw));
     } catch (e2) {}
 
-    return isNaN(value)
-      ? { ok: false, reason: 'not-number', raw: _safeString(raw) }
-      : { ok: true, value: value, raw: _safeString(raw) };
+    return isNaN(value) ? { ok: false } : { ok: true, value: value };
   }
 
   function _readPublishedPort() {
@@ -174,62 +146,30 @@ const PanGateHttpSignal = (function () {
       if (ud && typeof ud.synchronize === 'function') ud.synchronize();
 
       var portValue = _defaultsNumber(ud, PanGateConstants.HTTP_PORT_KEY);
-      if (!portValue.ok) {
-        return { ok: false, reason: 'companion-port-' + portValue.reason, key: PanGateConstants.HTTP_PORT_KEY };
-      }
+      if (!portValue.ok) return { ok: false };
 
       var port = Math.floor(portValue.value);
-      if (port < 1024 || port > 65535) {
-        return { ok: false, reason: 'companion-port-invalid', key: PanGateConstants.HTTP_PORT_KEY, port: port };
-      }
+      if (port < 1024 || port > 65535) return { ok: false };
 
       return { ok: true, port: port };
     } catch (e) {
-      return { ok: false, reason: 'companion-port-read-error', key: PanGateConstants.HTTP_PORT_KEY, error: _safeString(e) };
+      return { ok: false };
     }
   }
 
-  function _refreshPublishedPort(reason, silent) {
+  function _refreshPublishedPort() {
     var result = _readPublishedPort();
     if (result.ok) {
-      var previousPort = _cachedPort;
       _cachedPort = result.port;
-      _lastPortErrorReason = '';
-      if (!silent && previousPort !== result.port) {
-        try {
-          console.log(
-            '[StylusFlow PanGateHTTP] port refreshed reason=' + _safeString(reason) +
-            ' previous=' + (previousPort === null ? '' : previousPort) +
-            ' port=' + result.port
-          );
-        } catch (e) {}
-      }
       return { ok: true, port: result.port, source: 'defaults' };
     }
-
     _cachedPort = null;
-    if (!silent) _logPortError(result);
     return result;
   }
 
   function _requestPort() {
     if (_cachedPort !== null) return { ok: true, port: _cachedPort, source: 'cache' };
-    return _refreshPublishedPort('request', false);
-  }
-
-  function _logPortError(result) {
-    if (!result || result.ok) return;
-    var reason = result.reason || 'unknown';
-    if (_lastPortErrorReason === reason) return;
-    _lastPortErrorReason = reason;
-    try {
-      console.log(
-        '[StylusFlow PanGateHTTP] error reason=' + reason +
-        ' key=' + (result.key || '') +
-        (typeof result.port === 'number' ? ' port=' + result.port : '') +
-        (result.error ? ' error=' + result.error : '')
-      );
-    } catch (e) {}
+    return _refreshPublishedPort();
   }
 
   function _bindingPayload() {
@@ -268,19 +208,12 @@ const PanGateHttpSignal = (function () {
   function notifySpace(input, flags, rootWindow) {
     if (!_isSpace(input)) return false;
     if (_inFlight) return false;
-    if (!_canSendHTTP()) {
-      try { console.log('[StylusFlow PanGateHTTP] skip reason=http-api-unavailable'); } catch (e) {}
-      return false;
-    }
+    if (!_canSendHTTP()) return false;
 
     var createdAt = Date.now();
     var focus = detectFocusedTextInput(rootWindow);
     var published = _requestPort();
-    if (!published.ok) {
-      _logPortError(published);
-      return false;
-    }
-    _lastPortErrorReason = '';
+    if (!published.ok) return false;
 
     var port = published.port;
     var bindings = _bindingPayload();
@@ -313,37 +246,15 @@ const PanGateHttpSignal = (function () {
         request.setValueForHTTPHeaderField('close', 'Connection');
         request.setValueForHTTPHeaderField('no-store', 'Cache-Control');
       }
-      console.log(
-        '[StylusFlow PanGateHTTP] Space notify begin createdAt=' + createdAt +
-        ' port=' + port +
-        ' portSource=' + published.source +
-        ' pluginTextInput=' + focus.inTextInput +
-        ' class=' + focus.className +
-        ' reason=' + focus.reason +
-        ' checked=' + focus.checked +
-        ' trigger=' + bindings.triggerDisplay +
-        ' stop=' + bindings.stopDisplay
-      );
       _inFlight = true;
       _notifyState('begin');
       NSURLConnection.sendAsynchronousRequestQueueCompletionHandler(
         request,
         NSOperationQueue.mainQueue(),
         function (response, data, error) {
-          var endedAt = Date.now();
           var status = _statusCode(response);
           var pon = _isPonResponse(status, data, error);
-          var shouldRefreshPort = _isTransportFailure(status, error);
-          console.log(
-            '[StylusFlow PanGateHTTP] Space notify end elapsedMs=' + (endedAt - createdAt) +
-            ' status=' + status +
-            ' dataLength=' + _dataLength(data) +
-            ' pon=' + pon +
-            ' inFlight=false' +
-            ' refreshPort=' + shouldRefreshPort +
-            ' error=' + _errorDescription(error)
-          );
-          if (shouldRefreshPort) _refreshPublishedPort('transport-failure', false);
+          if (_isTransportFailure(status, error)) _refreshPublishedPort();
           _inFlight = false;
           _notifyState(pon ? 'pon' : 'end');
         }
@@ -353,24 +264,20 @@ const PanGateHttpSignal = (function () {
       _inFlight = false;
       _notifyState('send-error');
       _cachedPort = null;
-      _refreshPublishedPort('send-throw', false);
-      try { console.log('[StylusFlow PanGateHTTP] send failed error=' + _safeString(e2)); } catch (e3) {}
+      _refreshPublishedPort();
       return false;
     }
   }
 
   function init(stateListener) {
     _stateListener = typeof stateListener === 'function' ? stateListener : null;
-    _refreshPublishedPort('load', true);
+    _refreshPublishedPort();
   }
 
   function reset(reason) {
     var wasLocked = _inFlight;
     _inFlight = false;
-    if (wasLocked) {
-      try { console.log('[StylusFlow PanGateHTTP] reset reason=' + _safeString(reason)); } catch (e) {}
-      _notifyState('reset.' + _safeString(reason));
-    }
+    if (wasLocked) _notifyState('reset.' + _safeString(reason));
   }
 
   function isInFlight() { return _inFlight; }

@@ -58,13 +58,6 @@ function shortcutFeature(ctx) {
         return true;
       }
 
-      var ni = ShortcutFormatter.normalizeInput(command);
-      var nf = ShortcutFormatter.normalizeFlags(keyFlags);
-      if (PanGateBindings.matchesStop(ni, nf)) {
-        EventInterceptor.armSoftStop();
-        EventInterceptor.syncGate();
-      }
-
       var actionId = ShortcutController.resolveAction(command, keyFlags);
       if (!actionId) return false;
 
