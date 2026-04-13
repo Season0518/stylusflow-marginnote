@@ -4,6 +4,7 @@ function createShortcutsContainer(config) {
   var addon = config.addon;
   var ACTIONS = ShortcutController.ACTIONS;
   var PAN_AUTO_ACTION = 'pan.autoOpen';
+  var PAN_AUTO_SELECT_ACTION = 'pan.autoSelectTool';
   var PAN_TRIGGER_ACTION = 'pan.trigger';
   var PAN_STOP_ACTION = 'pan.stop';
   var PAN_EXPIRED_ACTION = 'pan.expired';
@@ -30,6 +31,9 @@ function createShortcutsContainer(config) {
   function getBindingLabel(actionId) {
     if (actionId === PAN_AUTO_ACTION) {
       return PanGateController.isAutoOpenEnabled() ? Strings.debug.enabled : Strings.debug.disabled;
+    }
+    if (actionId === PAN_AUTO_SELECT_ACTION) {
+      return PanGateController.isAutoSelectToolEnabled() ? Strings.editor.yes : Strings.editor.no;
     }
     if (actionId === PAN_TRIGGER_ACTION) {
       var trigger = PanGateController.getTriggerBinding();
@@ -116,6 +120,19 @@ function createShortcutsContainer(config) {
       return;
     }
 
+    var autoSelectRow = ToggleRow.make(
+      scroll,
+      { actionId: PAN_AUTO_SELECT_ACTION, title: Strings.editor.panAutoSelectToolAction },
+      { panelWidth: panelWidth, indent: 12 },
+      getBindingLabel,
+      y
+    );
+    autoSelectRow.tapBtn.tag = nextTag;
+    autoSelectRow.tapBtn.addTargetActionForControlEvents(addon, 'onShortcutBindingTap:', 1 << 6);
+    actionIdByTag[nextTag] = PAN_AUTO_SELECT_ACTION;
+    nextTag++;
+    y = autoSelectRow.nextY;
+
     for (var k = 0; k < panItems.length; k++) {
       var pr = BindingRow.make(scroll, panItems[k], { panelWidth: panelWidth, compact: false, indent: 12 }, getBindingLabel, y);
       pr.tapBtn.tag = nextTag;
@@ -171,6 +188,13 @@ function createShortcutsContainer(config) {
     return true;
   }
 
+  function togglePanAutoSelectTool() {
+    var next = !PanGateController.isAutoSelectToolEnabled();
+    PanGateController.setAutoSelectToolEnabled(next);
+    renderWithTransition();
+    return true;
+  }
+
   render();
 
   return {
@@ -182,6 +206,7 @@ function createShortcutsContainer(config) {
       var actionId = actionIdByTag[tag];
       if (!actionId) return false;
       if (actionId === PAN_AUTO_ACTION) return togglePanAutoOpen();
+      if (actionId === PAN_AUTO_SELECT_ACTION) return togglePanAutoSelectTool();
       var panHandler = panTapHandlers[actionId];
       if (panHandler) { panHandler(); return true; }
       editor.open(actionId);

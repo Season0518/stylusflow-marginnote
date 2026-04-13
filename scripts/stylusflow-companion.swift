@@ -11,7 +11,7 @@ let flagOption: Int64 = 1 << 19
 let flagCommand: Int64 = 1 << 20
 
 if CommandLine.arguments.contains("--help") {
-  print("Usage: swift scripts/space-http-listener.swift [--port 17364] [--mn-domain QReader.MarginStudy.easy]")
+  print("Usage: swift scripts/stylusflow-companion.swift [--port 17364] [--mn-domain QReader.MarginStudy.easy]")
   print("Listens on 127.0.0.1, waits for Space keyup, then replies pon to MarginNote.")
   exit(0)
 }

@@ -28,6 +28,9 @@ const Strings = Object.freeze({
     panStopAction: 'PDF 平移停止键',
     panExpiredAction: 'PDF 平移延迟',
     panAutoOpenAction: 'PAN 模式自动开启',
+    panAutoSelectToolAction: '自动切换选择工具',
+    yes: '是',
+    no: '否',
   },
   validation: {
     missingAction: '缺少动作标识',

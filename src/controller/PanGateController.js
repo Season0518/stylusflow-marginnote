@@ -112,6 +112,7 @@ const PanGateController = (function () {
     return {
       isActive: isActive(),
       autoOpenEnabled: PanGateBindings.isAutoOpenEnabled(),
+      autoSelectToolEnabled: PanGateBindings.isAutoSelectToolEnabled(),
       expiredMs: PanGateBindings.getExpiredMs(),
       triggerLabel: PanGateBindings.getTriggerBinding().display,
       stopLabel: stopB ? stopB.display : Strings.debug.notSet,
@@ -185,6 +186,8 @@ const PanGateController = (function () {
     changeExpiredMs: PanGateBindings.changeExpiredMs,
     isAutoOpenEnabled: PanGateBindings.isAutoOpenEnabled,
     setAutoOpenEnabled: setAutoOpenEnabled,
+    isAutoSelectToolEnabled: PanGateBindings.isAutoSelectToolEnabled,
+    setAutoSelectToolEnabled: PanGateBindings.setAutoSelectToolEnabled,
     resetTriggerBinding: PanGateBindings.resetTriggerBinding,
     resetExpiredMs: PanGateBindings.resetExpiredMs,
     applyTriggerBinding: PanGateBindings.applyTriggerBinding,

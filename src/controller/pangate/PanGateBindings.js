@@ -11,6 +11,7 @@ const PanGateBindings = (function () {
   var _stopInput    = '';
   var _stopFlags    = C.DEFAULT_STOP_FLAGS;
   var _autoOpen     = false;
+  var _autoSelectTool = false;
 
   function _applyDefaults() {
     _expiredMs    = C.DEFAULT_EXPIRED_MS;
@@ -18,6 +19,7 @@ const PanGateBindings = (function () {
     _hasStop      = true;
     _stopInput    = '';                      _stopFlags    = C.DEFAULT_STOP_FLAGS;
     _autoOpen     = false;
+    _autoSelectTool = false;
   }
 
   function _label(type) {
@@ -33,6 +35,7 @@ const PanGateBindings = (function () {
       hasStopBinding: _hasStop,
       stopInput: _stopInput,      stopFlags: _stopFlags,
       autoOpen: _autoOpen,
+      autoSelectTool: _autoSelectTool,
     });
   }
 
@@ -61,6 +64,7 @@ const PanGateBindings = (function () {
 
   function getExpiredMs() { return _expiredMs; }
   function isAutoOpenEnabled() { return _autoOpen; }
+  function isAutoSelectToolEnabled() { return _autoSelectTool; }
 
   function getAdditionalShortcutKeys() {
     if (!_autoOpen) return [];
@@ -92,6 +96,12 @@ const PanGateBindings = (function () {
     _autoOpen = enabled === true;
     _save();
     return { ok: true, value: _autoOpen };
+  }
+
+  function setAutoSelectToolEnabled(enabled) {
+    _autoSelectTool = enabled === true;
+    _save();
+    return { ok: true, value: _autoSelectTool };
   }
 
   function applyTriggerBinding(input, flags) {
@@ -135,6 +145,7 @@ const PanGateBindings = (function () {
     if (typeof p.stopInput === 'string')  _stopInput = F.normalizeInput(p.stopInput);
     if (typeof p.stopFlags === 'number')  _stopFlags = F.normalizeFlags(p.stopFlags);
     if (typeof p.autoOpen === 'boolean')  _autoOpen = p.autoOpen;
+    if (typeof p.autoSelectTool === 'boolean') _autoSelectTool = p.autoSelectTool;
     if (!_hasStop) { _stopInput = ''; _stopFlags = 0; }
   }
 
@@ -147,11 +158,13 @@ const PanGateBindings = (function () {
     getStopBinding: getStopBinding,
     getExpiredMs: getExpiredMs,
     isAutoOpenEnabled: isAutoOpenEnabled,
+    isAutoSelectToolEnabled: isAutoSelectToolEnabled,
     getAdditionalShortcutKeys: getAdditionalShortcutKeys,
     clearStop: clearStop,
     changeExpiredMs: changeExpiredMs,
     setExpiredMs: setExpiredMs,
     setAutoOpenEnabled: setAutoOpenEnabled,
+    setAutoSelectToolEnabled: setAutoSelectToolEnabled,
     resetTriggerBinding: resetTriggerBinding,
     resetExpiredMs: resetExpiredMs,
     applyTriggerBinding: applyTriggerBinding,
