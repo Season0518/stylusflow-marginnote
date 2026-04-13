@@ -22,6 +22,7 @@ JSB.require('controller/MindMapBoxSelectController');
 JSB.require('controller/pangate/PanGateConstants');
 JSB.require('controller/pangate/PanGateStorage');
 JSB.require('controller/pangate/PanGateBindings');
+JSB.require('controller/pangate/PanGateHttpSignal');
 JSB.require('controller/PanGateController');
 JSB.require('controller/pangate/PanGesturePool');
 JSB.require('controller/pangate/EventInterceptor');

@@ -40,9 +40,13 @@ function shortcutFeature(ctx) {
       var panAction = PanGateController.processKey(command, keyFlags);
       if (panAction) {
         if (panAction === 'stop') {
+          PanGateHttpSignal.reset('stop');
           EventInterceptor.armSoftStop();
         } else if (panAction === 'trigger') {
           EventInterceptor.clearSoftStop();
+          PanGateHttpSignal.notifySpace(command, keyFlags, self.window);
+        } else if (panAction === 'capture') {
+          PanGateHttpSignal.reset('capture');
         }
         EventInterceptor.syncGate();
         if (ctx.panel && ctx.panel.isMounted()) ctx.panel.refreshDebug();
