@@ -44,6 +44,30 @@ function createMindMapBoxSelectRuntime() {
     return ok;
   }
 
+  function ensureBoxSelectMode(studyController) {
+    if (!PanGateController.isAutoOpenEnabled()) {
+      _log('ensure skipped reason=auto-off modeActive=' + bridge.isActive());
+      return false;
+    }
+    if (bridge.isActive()) {
+      syncPanGate('ensure.active');
+      return true;
+    }
+
+    var captured = calibration.captureSelectionPanInstance(studyController, _preferredRecognizerId());
+    if (!captured) {
+      _log('ensure end ok=false reason=no-captured-selection-pan preferred=' + _preferredRecognizerId());
+      return false;
+    }
+    var ok = bridge.start(studyController, captured.recognizerId || '2273');
+    _log(
+      'ensure end ok=' + ok +
+      ' modeActive=' + bridge.isActive() +
+      ' recognizerId=' + (captured.recognizerId || '2273')
+    );
+    return ok;
+  }
+
   function stopBoxSelectMode() {
     _log(
       'stopBoxSelectMode begin calibrationActive=' + calibration.isActive() +
@@ -148,6 +172,7 @@ function createMindMapBoxSelectRuntime() {
   return {
     startCalibration: startCalibration,
     toggleBoxSelectMode: toggleBoxSelectMode,
+    ensureBoxSelectMode: ensureBoxSelectMode,
     stopBoxSelectMode: stopBoxSelectMode,
     enableFreeMove: enableFreeMove,
     restoreBoxSelect: restoreBoxSelect,

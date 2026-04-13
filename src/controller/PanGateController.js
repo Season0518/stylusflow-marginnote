@@ -72,6 +72,7 @@ const PanGateController = (function () {
   // ── 热路径：归一化一次，直接比对已归一化的存储值 ──────────────
   function queryKeyNormalized(ni, nf) {
     if (_captureTarget !== null) return true;
+    if (!PanGateBindings.isAutoOpenEnabled()) return false;
     return PanGateBindings.matchesTrigger(ni, nf) || PanGateBindings.matchesStop(ni, nf);
   }
 
@@ -91,6 +92,7 @@ const PanGateController = (function () {
       _notifyStateListeners('capture');
       return 'capture';
     }
+    if (!PanGateBindings.isAutoOpenEnabled()) return null;
     if (PanGateBindings.matchesTrigger(ni, nf)) {
       heartbeat();
       _notifyStateListeners('trigger');
@@ -109,6 +111,7 @@ const PanGateController = (function () {
     var stopB = PanGateBindings.getStopBinding();
     return {
       isActive: isActive(),
+      autoOpenEnabled: PanGateBindings.isAutoOpenEnabled(),
       expiredMs: PanGateBindings.getExpiredMs(),
       triggerLabel: PanGateBindings.getTriggerBinding().display,
       stopLabel: stopB ? stopB.display : Strings.debug.notSet,
@@ -130,6 +133,17 @@ const PanGateController = (function () {
     _captureTarget = null;
     _cancelExpiryTimer();
     _notifyStateListeners('reset');
+  }
+
+  function setAutoOpenEnabled(enabled) {
+    var result = PanGateBindings.setAutoOpenEnabled(enabled);
+    if (!result || !result.ok) return result;
+    if (!result.value) {
+      forceExpire();
+      PanGateHttpSignal.reset('auto-off');
+    }
+    _notifyStateListeners(result.value ? 'auto-on' : 'auto-off');
+    return result;
   }
 
   function addStateListener(listener) {
@@ -169,6 +183,8 @@ const PanGateController = (function () {
     clearStop: PanGateBindings.clearStop,
     setExpiredMs: PanGateBindings.setExpiredMs,
     changeExpiredMs: PanGateBindings.changeExpiredMs,
+    isAutoOpenEnabled: PanGateBindings.isAutoOpenEnabled,
+    setAutoOpenEnabled: setAutoOpenEnabled,
     resetTriggerBinding: PanGateBindings.resetTriggerBinding,
     resetExpiredMs: PanGateBindings.resetExpiredMs,
     applyTriggerBinding: PanGateBindings.applyTriggerBinding,

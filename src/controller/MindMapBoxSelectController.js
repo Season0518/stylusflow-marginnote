@@ -5,6 +5,7 @@ const MindMapBoxSelectController = (function () {
   return {
     startCalibration: runtime.startCalibration,
     toggleBoxSelectMode: runtime.toggleBoxSelectMode,
+    ensureBoxSelectMode: runtime.ensureBoxSelectMode,
     stopBoxSelectMode: runtime.stopBoxSelectMode,
     enableFreeMove: runtime.enableFreeMove,
     restoreBoxSelect: runtime.restoreBoxSelect,

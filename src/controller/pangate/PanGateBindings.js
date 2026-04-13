@@ -10,12 +10,14 @@ const PanGateBindings = (function () {
   var _hasStop      = true;
   var _stopInput    = '';
   var _stopFlags    = C.DEFAULT_STOP_FLAGS;
+  var _autoOpen     = false;
 
   function _applyDefaults() {
     _expiredMs    = C.DEFAULT_EXPIRED_MS;
     _triggerInput = C.DEFAULT_TRIGGER_INPUT; _triggerFlags = C.DEFAULT_TRIGGER_FLAGS;
     _hasStop      = true;
     _stopInput    = '';                      _stopFlags    = C.DEFAULT_STOP_FLAGS;
+    _autoOpen     = false;
   }
 
   function _label(type) {
@@ -30,12 +32,17 @@ const PanGateBindings = (function () {
       triggerInput: _triggerInput, triggerFlags: _triggerFlags,
       hasStopBinding: _hasStop,
       stopInput: _stopInput,      stopFlags: _stopFlags,
+      autoOpen: _autoOpen,
     });
   }
 
   // ── 热路径匹配（接受预归一化值，零额外开销）────────────────────
-  function matchesTrigger(ni, nf) { return ni === _triggerInput && nf === _triggerFlags; }
+  function matchesTrigger(ni, nf) {
+    if (!_autoOpen) return false;
+    return ni === _triggerInput && nf === _triggerFlags;
+  }
   function matchesStop(ni, nf) {
+    if (!_autoOpen) return false;
     if (!_hasStop) return false;
     if (nf !== _stopFlags) return false;
     if (_stopInput === '') return true;
@@ -53,8 +60,10 @@ const PanGateBindings = (function () {
   }
 
   function getExpiredMs() { return _expiredMs; }
+  function isAutoOpenEnabled() { return _autoOpen; }
 
   function getAdditionalShortcutKeys() {
+    if (!_autoOpen) return [];
     var cmds = [{ input: _triggerInput, flags: _triggerFlags, title: 'StylusFlow: ' + Strings.debug.panTriggerTitle }];
     if (_hasStop) cmds.push({ input: _stopInput, flags: _stopFlags, title: 'StylusFlow: ' + Strings.debug.panStopTitle });
     return cmds;
@@ -79,6 +88,11 @@ const PanGateBindings = (function () {
 
   function resetTriggerBinding() { _triggerInput = C.DEFAULT_TRIGGER_INPUT; _triggerFlags = C.DEFAULT_TRIGGER_FLAGS; _save(); }
   function resetExpiredMs()       { _expiredMs = C.DEFAULT_EXPIRED_MS; _save(); }
+  function setAutoOpenEnabled(enabled) {
+    _autoOpen = enabled === true;
+    _save();
+    return { ok: true, value: _autoOpen };
+  }
 
   function applyTriggerBinding(input, flags) {
     var ni = F.normalizeCustomInput(input);
@@ -120,6 +134,7 @@ const PanGateBindings = (function () {
     }
     if (typeof p.stopInput === 'string')  _stopInput = F.normalizeInput(p.stopInput);
     if (typeof p.stopFlags === 'number')  _stopFlags = F.normalizeFlags(p.stopFlags);
+    if (typeof p.autoOpen === 'boolean')  _autoOpen = p.autoOpen;
     if (!_hasStop) { _stopInput = ''; _stopFlags = 0; }
   }
 
@@ -131,10 +146,12 @@ const PanGateBindings = (function () {
     getTriggerBinding: getTriggerBinding,
     getStopBinding: getStopBinding,
     getExpiredMs: getExpiredMs,
+    isAutoOpenEnabled: isAutoOpenEnabled,
     getAdditionalShortcutKeys: getAdditionalShortcutKeys,
     clearStop: clearStop,
     changeExpiredMs: changeExpiredMs,
     setExpiredMs: setExpiredMs,
+    setAutoOpenEnabled: setAutoOpenEnabled,
     resetTriggerBinding: resetTriggerBinding,
     resetExpiredMs: resetExpiredMs,
     applyTriggerBinding: applyTriggerBinding,

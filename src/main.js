@@ -35,6 +35,7 @@ JSB.require('ui/components/base/KVRow');
 // ui/components/shortcuts
 JSB.require('ui/components/shortcuts/BindingRow');
 JSB.require('ui/components/shortcuts/SectionHeader');
+JSB.require('ui/components/shortcuts/ToggleRow');
 JSB.require('ui/components/shortcuts/EditorModal');
 // ui/components/debug
 JSB.require('ui/components/debug/ToolRow');

@@ -24,12 +24,14 @@ const EventInterceptor = (function () {
   // ── 门控同步 ────────────────────────────────────────────────
   function syncGate() {
     if (!_pool) return;
-    _pool.syncEnabled(_active && (PanGateController.isSessionActive() || _pool.hasActiveGesture()));
+    _pool.syncEnabled(_active && PanGateController.isAutoOpenEnabled() && (PanGateController.isSessionActive() || _pool.hasActiveGesture()));
   }
 
   // ── 生命周期 ────────────────────────────────────────────────
   function start(addon) {
     _desiredActive = true;
+    _addon = addon;
+    if (!PanGateController.isAutoOpenEnabled()) return false;
     if (_active) return true;
     var pool = createPanGesturePool(addon);
     if (!pool.refresh()) {
@@ -53,11 +55,13 @@ const EventInterceptor = (function () {
 
   function refresh() {
     if (!_active || !_pool) return;
+    if (!PanGateController.isAutoOpenEnabled()) { syncGate(); return; }
     _pool.refresh();
     syncGate();
   }
 
   function ensure(addon) {
+    if (!PanGateController.isAutoOpenEnabled()) return false;
     if (!_desiredActive) return false;
     if (_active) { refresh(); return true; }
     return start(addon);

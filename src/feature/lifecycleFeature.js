@@ -1,4 +1,10 @@
 function lifecycleFeature(ctx, mainPath) {
+  function _ensurePanMode(sc) {
+    if (!PanGateController.isAutoOpenEnabled()) return false;
+    if (typeof MindMapBoxSelectController === 'undefined' || !sc) return false;
+    return MindMapBoxSelectController.ensureBoxSelectMode(sc);
+  }
+
   return {
     sceneWillConnect: function () {
       self.mainPath = mainPath;
@@ -28,6 +34,7 @@ function lifecycleFeature(ctx, mainPath) {
           ctx.shortcutState.lastToolSlot = tools0.length - 1;
           ctx.shortcutState.lastToolClass = CanvasToolController.tryGetClassName(last0.view);
         }
+        _ensurePanMode(sc0);
       }
       if (ctx.panel) ctx.panel.refreshShortcutBindings();
     },
@@ -50,7 +57,9 @@ function lifecycleFeature(ctx, mainPath) {
           if (r.bindingListChanged || r.signatureChanged) ctx.panel.refreshDebug();
         }
         EventInterceptor.ensure(self);
-        if (typeof MindMapBoxSelectController !== 'undefined') MindMapBoxSelectController.syncPanGate('lifecycle.layout');
+        if (!_ensurePanMode(sc) && typeof MindMapBoxSelectController !== 'undefined') {
+          MindMapBoxSelectController.syncPanGate('lifecycle.layout');
+        }
       }
       if (!ctx.panel || !ctx.panel.isMounted()) return;
       if (controller === sc && sc && sc.view) ctx.panel.relayoutWithinBounds(sc.view.bounds);
