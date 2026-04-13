@@ -24,7 +24,7 @@ const EventInterceptor = (function () {
   // ── 门控同步 ────────────────────────────────────────────────
   function syncGate() {
     if (!_pool) return;
-    _pool.syncEnabled(_active && (PanGateController.isActive() || _pool.hasActiveGesture()));
+    _pool.syncEnabled(_active && (PanGateController.isSessionActive() || _pool.hasActiveGesture()));
   }
 
   // ── 生命周期 ────────────────────────────────────────────────
@@ -84,11 +84,11 @@ const EventInterceptor = (function () {
         return;
       }
 
-      if (entry && !entry.gestureActive && PanGateController.isActive()) {
+      if (entry && !entry.gestureActive && PanGateController.isSessionActive()) {
         entry.gestureActive = true;
       }
 
-      if (!(entry && entry.gestureActive) && !PanGateController.isActive()) {
+      if (!(entry && entry.gestureActive) && !PanGateController.isSessionActive()) {
         syncGate();
         return;
       }

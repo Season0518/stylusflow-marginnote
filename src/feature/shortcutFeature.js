@@ -49,6 +49,7 @@ function shortcutFeature(ctx) {
           PanGateHttpSignal.reset('capture');
         }
         EventInterceptor.syncGate();
+        if (typeof MindMapBoxSelectController !== 'undefined') MindMapBoxSelectController.syncPanGate('shortcut.' + panAction);
         if (ctx.panel && ctx.panel.isMounted()) ctx.panel.refreshDebug();
         if (panAction === 'capture') {
           var sc0 = Application.sharedInstance().studyController(self.window);

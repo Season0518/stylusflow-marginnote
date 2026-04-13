@@ -1,16 +1,19 @@
 function lifecycleFeature(ctx, mainPath) {
-  function _ensureBoxSelect(sc) {
-    if (typeof MindMapBoxSelectController === 'undefined' || !sc) return;
-    if (!MindMapBoxSelectController.getDebugState().modeActive) {
-      MindMapBoxSelectController.toggleBoxSelectMode(sc);
-    }
-  }
-
   return {
     sceneWillConnect: function () {
       self.mainPath = mainPath;
       ShortcutController.restorePersistedBindings();
       PanGateController.init();
+      if (!ctx.panGateStateListener) {
+        ctx.panGateStateListener = function (event) {
+          EventInterceptor.syncGate();
+          if (typeof MindMapBoxSelectController !== 'undefined') {
+            MindMapBoxSelectController.syncPanGate('pangate.' + ((event && event.reason) || 'change'));
+          }
+          if (ctx.panel && ctx.panel.isMounted()) ctx.panel.refreshDebug();
+        };
+      }
+      PanGateController.addStateListener(ctx.panGateStateListener);
       ctx.panel = createPanelContainer(self);
       EventInterceptor.start(self);
       ToolWatcher.watch(self.window, true, true);
@@ -25,7 +28,6 @@ function lifecycleFeature(ctx, mainPath) {
           ctx.shortcutState.lastToolSlot = tools0.length - 1;
           ctx.shortcutState.lastToolClass = CanvasToolController.tryGetClassName(last0.view);
         }
-        _ensureBoxSelect(sc0);
       }
       if (ctx.panel) ctx.panel.refreshShortcutBindings();
     },
@@ -34,6 +36,7 @@ function lifecycleFeature(ctx, mainPath) {
       ctx.panel = null;
       ToolWatcher.reset();
       EventInterceptor.stop();
+      if (ctx.panGateStateListener) PanGateController.removeStateListener(ctx.panGateStateListener);
       if (typeof MindMapBoxSelectController !== 'undefined') MindMapBoxSelectController.stopBoxSelectMode();
       PanGateController.forceExpire();
     },
@@ -47,7 +50,7 @@ function lifecycleFeature(ctx, mainPath) {
           if (r.bindingListChanged || r.signatureChanged) ctx.panel.refreshDebug();
         }
         EventInterceptor.ensure(self);
-        _ensureBoxSelect(sc);
+        if (typeof MindMapBoxSelectController !== 'undefined') MindMapBoxSelectController.syncPanGate('lifecycle.layout');
       }
       if (!ctx.panel || !ctx.panel.isMounted()) return;
       if (controller === sc && sc && sc.view) ctx.panel.relayoutWithinBounds(sc.view.bounds);

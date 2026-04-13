@@ -1,5 +1,5 @@
 // Debug tab 容器骨架：pane + 按钮组 + scroll（纯视图，不挂事件）
-// DebugPaneView.build(config) → { pane, scroll, scanBtn, resetBtn, panUpBtn, ..., mindMapBoxProbeBtn, mindMapBoxModeBtn, interceptBtn }
+// DebugPaneView.build(config) → { pane, scroll, scanBtn, resetBtn, panUpBtn, ..., mindMapBoxProbeBtn, mindMapBoxModeBtn, mindMapFreeMoveBtn, interceptBtn }
 // config: { panelWidth, originY, contentHeight }
 const DebugPaneView = (function () {
   function styleButton(button, title, bgColor) {
@@ -67,12 +67,17 @@ const DebugPaneView = (function () {
     styleButton(mindMapBoxModeBtn, Strings.debug.mindMapBoxModeOn, UIColor.colorWithWhiteAlpha(0.4, 1));
     pane.addSubview(mindMapBoxModeBtn);
 
+    var mindMapFreeMoveBtn = UIButton.buttonWithType(0);
+    mindMapFreeMoveBtn.frame = { x: 10, y: panTop + 152, width: panelWidth - 20, height: 32 };
+    styleButton(mindMapFreeMoveBtn, Strings.debug.mindMapFreeMoveOn, UIColor.colorWithRedGreenBlueAlpha(0.2, 0.6, 0.9, 1));
+    pane.addSubview(mindMapFreeMoveBtn);
+
     var interceptBtn = UIButton.buttonWithType(0);
-    interceptBtn.frame = { x: 10, y: panTop + 152, width: panelWidth - 20, height: 32 };
+    interceptBtn.frame = { x: 10, y: panTop + 192, width: panelWidth - 20, height: 32 };
     styleButton(interceptBtn, Strings.debug.interceptStart, UIColor.colorWithRedGreenBlueAlpha(0.2, 0.6, 0.9, 1));
     pane.addSubview(interceptBtn);
 
-    var scrollTop = panTop + 192;
+    var scrollTop = panTop + 232;
     var scroll = new UIScrollView({ x: 0, y: scrollTop, width: panelWidth, height: contentHeight - scrollTop });
     scroll.alwaysBounceVertical = true;
     pane.addSubview(scroll);
@@ -88,6 +93,7 @@ const DebugPaneView = (function () {
       panRightBtn: panRightBtn,
       mindMapBoxProbeBtn: mindMapBoxProbeBtn,
       mindMapBoxModeBtn: mindMapBoxModeBtn,
+      mindMapFreeMoveBtn: mindMapFreeMoveBtn,
       interceptBtn: interceptBtn,
     };
   }

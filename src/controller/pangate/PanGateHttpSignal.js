@@ -6,6 +6,7 @@ const PanGateHttpSignal = (function () {
   var _inFlight = false;
   var _cachedPort = null;
   var _lastPortErrorReason = '';
+  var _stateListener = null;
 
   function _isNil(value) {
     if (typeof value === 'undefined' || value === null) return true;
@@ -17,6 +18,11 @@ const PanGateHttpSignal = (function () {
 
   function _safeString(value) {
     try { return String(value); } catch (e) { return ''; }
+  }
+
+  function _notifyState(reason) {
+    if (typeof _stateListener !== 'function') return;
+    try { _stateListener(reason); } catch (e) {}
   }
 
   function _className(view) {
@@ -319,6 +325,7 @@ const PanGateHttpSignal = (function () {
         ' stop=' + bindings.stopDisplay
       );
       _inFlight = true;
+      _notifyState('begin');
       NSURLConnection.sendAsynchronousRequestQueueCompletionHandler(
         request,
         NSOperationQueue.mainQueue(),
@@ -338,11 +345,13 @@ const PanGateHttpSignal = (function () {
           );
           if (shouldRefreshPort) _refreshPublishedPort('transport-failure', false);
           _inFlight = false;
+          _notifyState(pon ? 'pon' : 'end');
         }
       );
       return true;
     } catch (e2) {
       _inFlight = false;
+      _notifyState('send-error');
       _cachedPort = null;
       _refreshPublishedPort('send-throw', false);
       try { console.log('[StylusFlow PanGateHTTP] send failed error=' + _safeString(e2)); } catch (e3) {}
@@ -350,7 +359,8 @@ const PanGateHttpSignal = (function () {
     }
   }
 
-  function init() {
+  function init(stateListener) {
+    _stateListener = typeof stateListener === 'function' ? stateListener : null;
     _refreshPublishedPort('load', true);
   }
 
@@ -359,13 +369,17 @@ const PanGateHttpSignal = (function () {
     _inFlight = false;
     if (wasLocked) {
       try { console.log('[StylusFlow PanGateHTTP] reset reason=' + _safeString(reason)); } catch (e) {}
+      _notifyState('reset.' + _safeString(reason));
     }
   }
+
+  function isInFlight() { return _inFlight; }
 
   return {
     init: init,
     notifySpace: notifySpace,
     detectFocusedTextInput: detectFocusedTextInput,
     reset: reset,
+    isInFlight: isInFlight,
   };
 })();

@@ -5,6 +5,8 @@ const PanGateController = (function () {
 
   var _lastHeartbeatAt = 0;
   var _captureTarget = null; // 'trigger' | 'stop' | null
+  var _stateListeners = [];
+  var _expiryTimer = null;
 
   function _now() { return Date.now(); }
 
@@ -13,8 +15,53 @@ const PanGateController = (function () {
     return _lastHeartbeatAt !== 0 && (_now() - _lastHeartbeatAt) < PanGateBindings.getExpiredMs();
   }
 
-  function heartbeat() { _lastHeartbeatAt = _now(); }
-  function forceExpire() { _lastHeartbeatAt = 0; }
+  function isSessionActive() {
+    return isActive() || PanGateHttpSignal.isInFlight();
+  }
+
+  function _notifyStateListeners(reason) {
+    for (var i = 0; i < _stateListeners.length; i++) {
+      try {
+        _stateListeners[i]({
+          reason: reason,
+          isActive: isActive(),
+          isSessionActive: isSessionActive(),
+          lastHeartbeatAt: _lastHeartbeatAt,
+        });
+      } catch (e) {}
+    }
+  }
+
+  function _cancelExpiryTimer() {
+    if (_expiryTimer) {
+      try { _expiryTimer.invalidate(); } catch (e) {}
+    }
+    _expiryTimer = null;
+  }
+
+  function _scheduleExpiryNotify(expectedHeartbeatAt) {
+    _cancelExpiryTimer();
+    try {
+      _expiryTimer = NSTimer.scheduledTimerWithTimeInterval((PanGateBindings.getExpiredMs() + 20) / 1000, false, function (timer) {
+        try { if (timer) timer.invalidate(); } catch (e) {}
+        _expiryTimer = null;
+        if (_lastHeartbeatAt !== expectedHeartbeatAt) return;
+        if (isSessionActive()) return;
+        _notifyStateListeners('expired');
+      });
+    } catch (e) {
+      _expiryTimer = null;
+    }
+  }
+
+  function heartbeat() {
+    _lastHeartbeatAt = _now();
+    _scheduleExpiryNotify(_lastHeartbeatAt);
+  }
+  function forceExpire() {
+    _lastHeartbeatAt = 0;
+    _cancelExpiryTimer();
+  }
 
   // ── 捕获模式 ────────────────────────────────────────────────
   function startCapture(target) { _captureTarget = target; }
@@ -41,14 +88,17 @@ const PanGateController = (function () {
       PanGateBindings.finishCapture(input, flags, _captureTarget);
       _captureTarget = null;
       forceExpire();
+      _notifyStateListeners('capture');
       return 'capture';
     }
     if (PanGateBindings.matchesTrigger(ni, nf)) {
       heartbeat();
+      _notifyStateListeners('trigger');
       return 'trigger';
     }
     if (PanGateBindings.matchesStop(ni, nf)) {
       forceExpire();
+      _notifyStateListeners('stop');
       return 'stop';
     }
     return null;
@@ -69,17 +119,37 @@ const PanGateController = (function () {
   // ── 生命周期 ────────────────────────────────────────────────
   function init() {
     PanGateBindings.init();
-    PanGateHttpSignal.init();
+    PanGateHttpSignal.init(function (reason) {
+      _notifyStateListeners('http.' + String(reason || 'change'));
+    });
   }
 
   function resetConfig() {
     PanGateBindings.resetConfig();
     _lastHeartbeatAt = 0;
     _captureTarget = null;
+    _cancelExpiryTimer();
+    _notifyStateListeners('reset');
+  }
+
+  function addStateListener(listener) {
+    if (typeof listener !== 'function') return false;
+    for (var i = 0; i < _stateListeners.length; i++) {
+      if (_stateListeners[i] === listener) return true;
+    }
+    _stateListeners.push(listener);
+    return true;
+  }
+
+  function removeStateListener(listener) {
+    for (var i = _stateListeners.length - 1; i >= 0; i--) {
+      if (_stateListeners[i] === listener) _stateListeners.splice(i, 1);
+    }
   }
 
   return {
     isActive: isActive,
+    isSessionActive: isSessionActive,
     heartbeat: heartbeat,
     forceExpire: forceExpire,
     startCapture: startCapture,
@@ -104,6 +174,8 @@ const PanGateController = (function () {
     applyTriggerBinding: PanGateBindings.applyTriggerBinding,
     applyStopBinding: PanGateBindings.applyStopBinding,
     getAdditionalShortcutKeys: PanGateBindings.getAdditionalShortcutKeys,
+    addStateListener: addStateListener,
+    removeStateListener: removeStateListener,
     STORAGE_KEY: PanGateConstants.STORAGE_KEY,
     STEP: PanGateConstants.STEP,
   };

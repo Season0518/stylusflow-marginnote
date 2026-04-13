@@ -16,10 +16,19 @@ function createDebugContainer(config) {
   built.panRightBtn.addTargetActionForControlEvents(addon, 'onTestPanRight:', 1 << 6);
   built.mindMapBoxProbeBtn.addTargetActionForControlEvents(addon, 'onProbeMindMapBoxSelect:', 1 << 6);
   built.mindMapBoxModeBtn.addTargetActionForControlEvents(addon, 'onToggleMindMapBoxSelect:', 1 << 6);
+  built.mindMapFreeMoveBtn.addTargetActionForControlEvents(addon, 'onToggleMindMapFreeMove:', 1 << 6);
   built.interceptBtn.addTargetActionForControlEvents(addon, 'onToggleEventIntercept:', 1 << 6);
 
   var expandedIndices = {};
   var debugData = null;
+  var lastMindMapButtonState = '';
+
+  function getStudyController() {
+    try {
+      return Application.sharedInstance().studyController(addon.window);
+    } catch (e) {}
+    return null;
+  }
 
   function syncInterceptButton() {
     if (EventInterceptor.isActive()) {
@@ -33,7 +42,23 @@ function createDebugContainer(config) {
 
   function syncMindMapBoxButtons() {
     if (typeof MindMapBoxSelectController === 'undefined') return;
-    var state = MindMapBoxSelectController.getDebugState();
+    var state = MindMapBoxSelectController.getDebugState(getStudyController());
+    var nextButtonState =
+      'modeActive=' + !!state.modeActive +
+      ' boxBridgeActive=' + !!state.boxBridgeActive +
+      ' freeMoveActive=' + !!state.freeMoveActive +
+      ' calibrated=' + !!state.calibrated +
+      ' nativeSelectionFound=' + !!state.nativeSelectionFound +
+      ' nativeSelectionEnabled=' + String(state.nativeSelectionEnabled) +
+      ' nativeSelectionState=' + String(state.nativeSelectionState) +
+      ' bridgeRecognizerEnabled=' + String(state.bridgeRecognizerEnabled) +
+      ' bridgeRecognizerState=' + String(state.bridgeRecognizerState) +
+      ' panGateSessionActive=' + !!state.panGateSessionActive +
+      ' recognizer=' + String(state.recognizerName || '');
+    if (nextButtonState !== lastMindMapButtonState) {
+      lastMindMapButtonState = nextButtonState;
+      try { console.log('[StylusFlow MindMapDebug] buttons ' + nextButtonState); } catch (e) {}
+    }
 
     built.mindMapBoxProbeBtn.setTitleForState(Strings.debug.mindMapBoxProbe, 0);
     built.mindMapBoxProbeBtn.backgroundColor = UIColor.colorWithWhiteAlpha(0.5, 1);
@@ -41,13 +66,20 @@ function createDebugContainer(config) {
     if (state.modeActive) {
       built.mindMapBoxModeBtn.setTitleForState(Strings.debug.mindMapBoxModeOff, 0);
       built.mindMapBoxModeBtn.backgroundColor = UIColor.colorWithRedGreenBlueAlpha(0.9, 0.3, 0.2, 1);
-      return;
+    } else {
+      built.mindMapBoxModeBtn.setTitleForState(Strings.debug.mindMapBoxModeOn, 0);
+      built.mindMapBoxModeBtn.backgroundColor = state.calibrated
+        ? UIColor.colorWithRedGreenBlueAlpha(0.2, 0.7, 0.45, 1)
+        : UIColor.colorWithWhiteAlpha(0.4, 1);
     }
 
-    built.mindMapBoxModeBtn.setTitleForState(Strings.debug.mindMapBoxModeOn, 0);
-    built.mindMapBoxModeBtn.backgroundColor = state.calibrated
-      ? UIColor.colorWithRedGreenBlueAlpha(0.2, 0.7, 0.45, 1)
-      : UIColor.colorWithWhiteAlpha(0.4, 1);
+    if (state.freeMoveActive) {
+      built.mindMapFreeMoveBtn.setTitleForState(Strings.debug.mindMapFreeMoveOff, 0);
+      built.mindMapFreeMoveBtn.backgroundColor = UIColor.colorWithRedGreenBlueAlpha(0.2, 0.7, 0.45, 1);
+    } else {
+      built.mindMapFreeMoveBtn.setTitleForState(Strings.debug.mindMapFreeMoveOn, 0);
+      built.mindMapFreeMoveBtn.backgroundColor = UIColor.colorWithRedGreenBlueAlpha(0.2, 0.6, 0.9, 1);
+    }
   }
 
   function _applyLiveFields(obj) {

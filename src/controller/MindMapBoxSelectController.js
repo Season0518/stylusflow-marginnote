@@ -6,6 +6,10 @@ const MindMapBoxSelectController = (function () {
     startCalibration: runtime.startCalibration,
     toggleBoxSelectMode: runtime.toggleBoxSelectMode,
     stopBoxSelectMode: runtime.stopBoxSelectMode,
+    enableFreeMove: runtime.enableFreeMove,
+    restoreBoxSelect: runtime.restoreBoxSelect,
+    toggleFreeMove: runtime.toggleFreeMove,
+    syncPanGate: runtime.syncPanGate,
     getDebugState: runtime.getDebugState,
   };
 })();

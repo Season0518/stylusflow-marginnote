@@ -1,6 +1,6 @@
 // 脑图框选手势收集：解析候选根视图并提取手势元信息
 const MindMapBoxGestureCollector = (function () {
-  var EXTRA_ROOT_KEYWORDS = ['mindmapcanvas', 'pkcanvasview', 'pktiledgestureview'];
+  var EXTRA_ROOT_KEYWORDS = ['mindmapcanvas', 'mindmapscrollview', 'pkcanvasview', 'pktiledgestureview'];
 
   function _extractRecognizerMeta(description) {
     var text = MindMapShared.safeString(description || '');
